@@ -1,0 +1,1 @@
+This project downloads stock data and analyzes it 
