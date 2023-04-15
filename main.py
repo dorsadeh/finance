@@ -3,8 +3,10 @@ import os.path
 import yfinance as yf
 import pandas as pd
 
-# tickers = ['JNJ', 'XOM', 'CVX', 'KO']
-tickers = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
+dividend_aristocrats = ['DOV','GPC','PG','EMR','MMM','CINF','KO','JNJ','CL','ITW','HRL','SWK','FRT','SYY','GWW','BDX','PPG','TGT','ABBV','ABT','KMB','PEP','NUE','SPGI','ADM','WMT','VFC','ED','LOW','ADP','WBA','PNR','MCD','MDT','SHW','BEN','APD','AMCR','XOM','AFL','CTAS','BF.B','ATO','MKC','TROW','CAH','CLX','CVX','AOS','ECL','WST','ROP','LIN','CAT','CB','EXPD','BRO','ALB','ESS','O','IBM','NEE','CHD','GD']
+ido_list = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
+dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','GPC','KTB','LANC','LECO','MO','PB','RBCAA','SCL','SWK','TROW','UGI','UMBF','VFC']
+tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list) ) )
 
 # Define a list of the metrics we want to retrieve
 metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'enterpriseToEbitda', 'totalDebt',
@@ -16,15 +18,14 @@ force_update_csv_file = False
 def get_data():
     # Create an empty list to store the data for each ticker
     ticker_data = []
-
+    cnt = 0
     # Loop through each ticker and retrieve the data for the specified metrics
     for ticker in tickers:
+        cnt += 1
         # Download the ticker data using yfinance
-        print("===========" + ticker + "===========")
-        print("downloading data...")
+        print("downloading ticker data for '" + ticker + "' - " + str(cnt) + "/" + str(len(tickers)))
         ticker_info = yf.Ticker(ticker)
 
-        print("processing data...")
         # Extract the data for the specified metrics and store it in a dictionary
         data = {}
         for metric in metrics:
