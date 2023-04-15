@@ -36,30 +36,3 @@ df = pd.DataFrame(ticker_data, index=tickers)
 
 # Save the data to a CSV file
 df.to_csv('ticker_data.csv')
-
-# import yfinance as yf
-# import json
-#
-#
-# # def get_stocks_info(tickers_list: list, stocks_info_list: list):
-# #     for ticker in tickers_list:
-# #         print("getting info for " + ticker)
-# #         ticker_json = yf.Ticker(ticker)
-# #         json_formatted_str = json.dumps(ticker_json.info, indent=2)
-# #         print(json_formatted_str)
-# #         stocks_info_list.append(json_formatted_str)
-#
-#
-#
-# if __name__ == '__main__':
-#     # tickers = ['JNJ', 'XOM', 'CVX', 'KO']
-#     tickers_list = ['JNJ', 'XOM']
-#     all_tickers = ' '.join(tickers_list)
-#     tickers = yf.Tickers(all_tickers)
-#
-#     for ticker_str in tickers_list:
-#         stockInfo = StockInfo()
-#         stockInfo.dividend_yield = tickers_list[ticker_str].info["dividendYield"]
-
-
-
