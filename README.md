@@ -10,6 +10,14 @@ The data is downloaded from yahoo finance
 It is recommended to use an IDE (such as pycharm) and a virtual env
 
 # Guildelines
+## Our guidelines
+1. dividend_yield > TBD
+2. payout_ratio < TBD
+3. debt_return_time[years] < TBD
+4. PE < TBD
+5. FWD_PE < TBD
+6. credit_rating > TBD
+
 ## Dividaat guidelines:
 1. dividend_yield > 3%
 
@@ -18,6 +26,7 @@ It is recommended to use an IDE (such as pycharm) and a virtual env
 1. dividend grows from year to year, for at least 5 years (hopefully dividend_annual_growth > 10%)
 2. dividend_yield should be greater than snp500 (dividend_yield > 1.58%)
 3. payout_ratio < 50%
+4. long_term_debt / total_available_capital < 0.5
  
 ### descriptive:
 1. is the bussiness easily explainable
