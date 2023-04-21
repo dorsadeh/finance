@@ -7,7 +7,13 @@ dividend_aristocrats = ['DOV','GPC','PG','EMR','MMM','CINF','KO','JNJ','CL','ITW
 ido_list = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
 defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
 dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','GPC','KTB','LANC','LECO','MO','PB','RBCAA','SCL','SWK','TROW','UGI','UMBF','VFC']
-tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list) ) )
+indexes = ['SCHD', 'VIG', 'VYM', 'VNQ','VNQI','RWO','MORT','REZ']
+
+tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
+# tickers = ['LMT', 'MMM']
+
+start_date = '2013-04-21'  # 10 years ago
+end_date = '2023-04-21'  # today
 
 # Define a list of the metrics we want to retrieve
 metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'enterpriseToEbitda', 'totalDebt',
@@ -27,6 +33,14 @@ def get_data():
         print("downloading ticker data for '" + ticker + "' - " + str(cnt) + "/" + str(len(tickers)))
         ticker_info = yf.Ticker(ticker)
 
+        # Get the historical stock prices for the start and end dates
+        stock_data = yf.Ticker(ticker).history(start=start_date, end=end_date)
+        # Calculate the stock growth in price
+        start_price = stock_data['Close'][0]
+        end_price = stock_data['Close'][-1]
+        growth = (end_price - start_price) / start_price * 100
+        print(f"The stock price of {ticker} has grown by {growth:.2f}% over the past 10 years. start_price={start_price:.2f}, end_price={end_price:.2f}")
+
         # Extract the data for the specified metrics and store it in a dictionary
         data = {}
         for metric in metrics:
@@ -35,6 +49,9 @@ def get_data():
             except:
                 value = 'N/A'
             data[metric] = value
+        data['price_today'] = end_price
+        data['price_10_years_ago'] = start_price
+        data['growth'] = (end_price - start_price) / start_price * 100
 
         # Add the ticker's data to the list of data for all tickers
         ticker_data.append(data)
