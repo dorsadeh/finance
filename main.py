@@ -1,3 +1,4 @@
+import json
 import os.path
 
 import yfinance as yf
@@ -10,14 +11,15 @@ defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EAD
 indexes = ['SCHD', 'VIG', 'VYM', 'VNQ','VNQI','RWO','MORT','REZ']
 
 tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
-# tickers = ['LMT', 'MMM']
+
+
 
 start_date = '2013-04-21'  # 10 years ago
 end_date = '2023-04-21'  # today
 
 # Define a list of the metrics we want to retrieve
-metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'enterpriseToEbitda', 'totalDebt',
-           'totalCash']
+metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
+           'totalCash', 'netIncomeToCommon']
 
 output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
@@ -49,6 +51,9 @@ def get_data():
             except:
                 value = 'N/A'
             data[metric] = value
+        # with open("data.json", 'w', encoding='utf-8') as f:
+        #     json.dump(ticker_info.info, f, ensure_ascii=False, indent=2)
+
         data['price_today'] = end_price
         data['price_10_years_ago'] = start_price
         data['growth'] = (end_price - start_price) / start_price * 100
@@ -65,7 +70,8 @@ def get_data():
 def process_data():
     DIVIDEND_YIELD_MIN_VAL = 0.020
     PAYOUT_RATIO_MAX_VAL = 0.7
-    DEBT_RETURN_TIME_MAX_VAL = 5.0
+    DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = 5.0
+    DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = 5.0
 
     print("======= all data ======")
     df0 = pd.read_csv(output_file_name)
@@ -81,8 +87,10 @@ def process_data():
     print(df3.to_string())
 
     print("\n======= filter debt return time ======")
-    df3['debtReturnTime'] = df3['totalDebt'] / df3['totalCash']
-    df4 = df3[df3['debtReturnTime'] < DEBT_RETURN_TIME_MAX_VAL]
+    df3['debtReturnTimeByEbitda'] = (df3['totalDebt'] - df3['totalCash']) / df3['ebitda']
+    df3['debtReturnTimeByIncome'] = (df3['totalDebt'] - df3['totalCash']) / df3['netIncomeToCommon']
+     # TODO: handle N/A case
+    df4 = df3[df3['debtReturnTime'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA]
     print(df4.to_string())
 
     print("\n======= add lists presense ======")
@@ -91,6 +99,7 @@ def process_data():
     df4['isInIdoList'] = df4['Unnamed: 0'].isin(ido_list)
     df4['isInDividaatList'] = df4['Unnamed: 0'].isin(dividaat_list)
     print(df4.to_string())
+    df4.to_csv("filtered_data.csv")
 
 if __name__ == '__main__':
     csv_file_exists = os.path.exists(output_file_name)
