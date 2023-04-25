@@ -65,37 +65,7 @@ def process_data():
     df5['isInDividaatList'] = df5['Unnamed: 0'].isin(dividaat_list)
     print(df5.to_string())
 
-# %%
-
-dividend_aristocrats = ['DOV','GPC','PG','EMR','MMM','CINF','KO','JNJ','CL','ITW','HRL','SWK','FRT','SYY','GWW','BDX','PPG','TGT','ABBV','ABT','KMB','PEP','NUE','SPGI','ADM','WMT','VFC','ED','LOW','ADP','WBA','PNR','MCD','MDT','SHW','BEN','APD','AMCR','XOM','AFL','CTAS','ATO','MKC','TROW','CAH','CLX','CVX','AOS','ECL','WST','ROP','LIN','CAT','CB','EXPD','BRO','ALB','ESS','O','IBM','NEE','CHD','GD']
-ido_list = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
-defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
-dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','GPC','KTB','LANC','LECO','MO','PB','RBCAA','SCL','SWK','TROW','UGI','UMBF','VFC']
-tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list) ) )
-
-# Define a list of the metrics we want to retrieve
-metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'enterpriseToEbitda', 'totalDebt',
-           'totalCash']
-
-output_file_name = 'ticker_data.csv'
-force_update_csv_file = False
-
-if __name__ == '__main__':
-    csv_file_exists = os.path.exists(output_file_name)
-    if csv_file_exists and not force_update_csv_file:
-        print("data exists. not updating file...")
-    else:
-        print("updating data for all tickers")
-        get_data()
-    process_data()
-
-# %%
-ticker = yf.Ticker('JNJ')
-devs = ticker.dividends
-
-# %%
-
-def cal_dev_increament(dev, p):
+def cal_dev_increament(devs, p):
     # This function calculate the average exponential increments of the devidend
     # and check wheter it is monotonically increasing and if it persistent with maximal time between devidets of 100 days
     #  finding the events during the last p years
@@ -103,7 +73,7 @@ def cal_dev_increament(dev, p):
     t_ns = np.datetime64('today')-t_abs
     t_D = t_ns.astype('timedelta64[D]')
     t = -t_D.astype('float64')/365
-    last_events = t>-5
+    last_events = t>-p
     t = t[last_events]
     devs_values = devs.values[last_events]
 
@@ -127,3 +97,25 @@ def cal_dev_increament(dev, p):
 
     return yearly_increment, is_monotonic, is_persistent
 # %%
+
+dividend_aristocrats = ['DOV','GPC','PG','EMR','MMM','CINF','KO','JNJ','CL','ITW','HRL','SWK','FRT','SYY','GWW','BDX','PPG','TGT','ABBV','ABT','KMB','PEP','NUE','SPGI','ADM','WMT','VFC','ED','LOW','ADP','WBA','PNR','MCD','MDT','SHW','BEN','APD','AMCR','XOM','AFL','CTAS','ATO','MKC','TROW','CAH','CLX','CVX','AOS','ECL','WST','ROP','LIN','CAT','CB','EXPD','BRO','ALB','ESS','O','IBM','NEE','CHD','GD']
+ido_list = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
+defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
+dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','GPC','KTB','LANC','LECO','MO','PB','RBCAA','SCL','SWK','TROW','UGI','UMBF','VFC']
+tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list) ) )
+
+# Define a list of the metrics we want to retrieve
+metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'enterpriseToEbitda', 'totalDebt',
+           'totalCash']
+
+output_file_name = 'ticker_data.csv'
+force_update_csv_file = False
+
+if __name__ == '__main__':
+    csv_file_exists = os.path.exists(output_file_name)
+    if csv_file_exists and not force_update_csv_file:
+        print("data exists. not updating file...")
+    else:
+        print("updating data for all tickers")
+        get_data()
+    process_data()
