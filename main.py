@@ -90,7 +90,7 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
     and check wheter it is monotonically increasing and if it persistent with
     maximal time between dividends of 100 days
     """
-    #     #  finding the events during the last p years
+    # finding the events during the last p years
     DAYS_PER_YEAR = 365
     t_abs_all = div_obj.index.values
     t_ns_all = np.datetime64('today')-t_abs_all
