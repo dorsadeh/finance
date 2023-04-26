@@ -1,4 +1,5 @@
 # %%
+import json
 import os.path
 import yfinance as yf
 import pandas as pd
@@ -17,6 +18,14 @@ def get_data():
         print("downloading ticker data for '" + ticker + "' - " + str(cnt) + "/" + str(len(tickers)))
         ticker_info = yf.Ticker(ticker)
 
+        # Get the historical stock prices for the start and end dates
+        stock_data = yf.Ticker(ticker).history(start=start_date, end=end_date)
+        # Calculate the stock growth in price
+        start_price = stock_data['Close'][0]
+        end_price = stock_data['Close'][-1]
+        # growth = (end_price - start_price) / start_price * 100
+        # print(f"The stock price of {ticker} has grown by {growth:.2f}% over the past 10 years. start_price={start_price:.2f}, end_price={end_price:.2f}")
+
         # Extract the data for the specified metrics and store it in a dictionary
         data = {}
         for metric in metrics:
@@ -25,6 +34,12 @@ def get_data():
             except:
                 value = 'N/A'
             data[metric] = value
+        # with open("data.json", 'w', encoding='utf-8') as f:
+        #     json.dump(ticker_info.info, f, ensure_ascii=False, indent=2)
+
+        data['price_today'] = end_price
+        data['price_10_years_ago'] = start_price
+        data['growth'] = (end_price - start_price) / start_price * 100
 
         # Add the ticker's data to the list of data for all tickers
         ticker_data.append(data)
@@ -38,10 +53,12 @@ def get_data():
 def process_data():
     DIVIDEND_YIELD_MIN_VAL = 0.020
     PAYOUT_RATIO_MAX_VAL = 0.7
-    DEBT_RETURN_TIME_MAX_VAL = 5.0
+    DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = 5.0
+    DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = 5.0
 
     print("======= all data ======")
-    df1 = pd.read_csv(output_file_name)
+    df0 = pd.read_csv(output_file_name)
+    df1 = df0.sort_values(by=['dividendYield'], ascending=False)
     print(df1.to_string())
 
     print("\n======= filter dividend yield ======")
@@ -53,17 +70,19 @@ def process_data():
     print(df3.to_string())
 
     print("\n======= filter debt return time ======")
-    df3['debtReturnTime'] = df3['totalDebt'] / df3['totalCash']
-    df4 = df3[df3['debtReturnTime'] < DEBT_RETURN_TIME_MAX_VAL]
+    df3['debtReturnTimeByEbitda'] = (df3['totalDebt'] - df3['totalCash']) / df3['ebitda']
+    df3['debtReturnTimeByIncome'] = (df3['totalDebt'] - df3['totalCash']) / df3['netIncomeToCommon']
+     # TODO: handle N/A case
+    df4 = df3[df3['debtReturnTime'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA]
     print(df4.to_string())
 
-    print("\n======= sort by dividendYield ======")
-    df5 = df4.sort_values(by=['dividendYield'], ascending=False)
-    df5['isDividendAristocrat'] = df5['Unnamed: 0'].isin(dividend_aristocrats)
-    df5['isDefenceCompany'] = df5['Unnamed: 0'].isin(defence_companies_list)
-    df5['isInIdoList'] = df5['Unnamed: 0'].isin(ido_list)
-    df5['isInDividaatList'] = df5['Unnamed: 0'].isin(dividaat_list)
-    print(df5.to_string())
+    print("\n======= add lists presense ======")
+    df4['isDividendAristocrat'] = df4['Unnamed: 0'].isin(dividend_aristocrats)
+    df4['isDefenceCompany'] = df4['Unnamed: 0'].isin(defence_companies_list)
+    df4['isInIdoList'] = df4['Unnamed: 0'].isin(ido_list)
+    df4['isInDividaatList'] = df4['Unnamed: 0'].isin(dividaat_list)
+    print(df4.to_string())
+    df4.to_csv("filtered_data.csv")
 
 def cal_dev_increament(devs, p):
     # This function calculate the average exponential increments of the devidend
@@ -100,13 +119,20 @@ def cal_dev_increament(devs, p):
 
 dividend_aristocrats = ['DOV','GPC','PG','EMR','MMM','CINF','KO','JNJ','CL','ITW','HRL','SWK','FRT','SYY','GWW','BDX','PPG','TGT','ABBV','ABT','KMB','PEP','NUE','SPGI','ADM','WMT','VFC','ED','LOW','ADP','WBA','PNR','MCD','MDT','SHW','BEN','APD','AMCR','XOM','AFL','CTAS','ATO','MKC','TROW','CAH','CLX','CVX','AOS','ECL','WST','ROP','LIN','CAT','CB','EXPD','BRO','ALB','ESS','O','IBM','NEE','CHD','GD']
 ido_list = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
-defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
 dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','GPC','KTB','LANC','LECO','MO','PB','RBCAA','SCL','SWK','TROW','UGI','UMBF','VFC']
-tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list) ) )
+defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
+indexes = ['SCHD', 'VIG', 'VYM', 'VNQ','VNQI','RWO','MORT','REZ']
+
+tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
+
+
+
+start_date = '2013-04-21'  # 10 years ago
+end_date = '2023-04-21'  # today
 
 # Define a list of the metrics we want to retrieve
-metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'enterpriseToEbitda', 'totalDebt',
-           'totalCash']
+metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
+           'totalCash', 'netIncomeToCommon']
 
 output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
