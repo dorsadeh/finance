@@ -84,7 +84,7 @@ def process_data():
     print(df4.to_string())
     df4.to_csv("filtered_data.csv")
 
-def cal_dividend_increament(div_obj: 'pandas.core.series.Series', number_of_years: 'int')-> dict:
+def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int)-> dict:
     """
     This function calculate the average exponential increments of the dividend
     and check wheter it is monotonically increasing and if it persistent with
