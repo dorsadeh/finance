@@ -1,3 +1,4 @@
 .idea
 outputs/*
 ticker_data.csv
+venv
