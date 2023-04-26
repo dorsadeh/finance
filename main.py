@@ -122,17 +122,21 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
                    'is_monotonic': is_monotonic,
                    'is_persistent': is_persistent}
     return output_dict
-# %%
+# %% import tickers
+with open("./inputs/tickers.json") as ticker_file:
+    tickers_dict = json.load(ticker_file)
 
-dividend_aristocrats = ['DOV','GPC','PG','EMR','MMM','CINF','KO','JNJ','CL','ITW','HRL','SWK','FRT','SYY','GWW','BDX','PPG','TGT','ABBV','ABT','KMB','PEP','NUE','SPGI','ADM','WMT','VFC','ED','LOW','ADP','WBA','PNR','MCD','MDT','SHW','BEN','APD','AMCR','XOM','AFL','CTAS','ATO','MKC','TROW','CAH','CLX','CVX','AOS','ECL','WST','ROP','LIN','CAT','CB','EXPD','BRO','ALB','ESS','O','IBM','NEE','CHD','GD']
-ido_list = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
-dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','GPC','KTB','LANC','LECO','MO','PB','RBCAA','SCL','SWK','TROW','UGI','UMBF','VFC']
-defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
-indexes = ['SCHD', 'VIG', 'VYM', 'VNQ','VNQI','RWO','MORT','REZ']
+lists_to_include = ["dividend_aristocrats", "dividaat_list"]
+tickers = []
+for list_name in lists_to_include:
+    if list_name in lists_to_include:
+        tickers = tickers +  tickers_dict[list_name]
+    else:
+        print("Tickers list: " + list_name + ", does not exist in tickers.json")
 
-tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
+tickers = list(set(tickers)) # remove repetitions
 
-
+# %% run analysis
 
 start_date = '2013-04-21'  # 10 years ago
 end_date = '2023-04-21'  # today
