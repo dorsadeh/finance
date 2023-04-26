@@ -84,30 +84,30 @@ def process_data():
     print(df4.to_string())
     df4.to_csv("filtered_data.csv")
 
-def cal_dev_increament(devs, p):
-    # This function calculate the average exponential increments of the devidend
-    # and check wheter it is monotonically increasing and if it persistent with maximal time between devidets of 100 days
+def cal_dividend_increament(div_obj, p):
+    # This function calculate the average exponential increments of the dividend
+    # and check wheter it is monotonically increasing and if it persistent with maximal time between dividends of 100 days
     #  finding the events during the last p years
-    t_abs = devs.index.values
+    t_abs = div_obj.index.values
     t_ns = np.datetime64('today')-t_abs
     t_D = t_ns.astype('timedelta64[D]')
     t = -t_D.astype('float64')/365
     last_events = t>-p
     t = t[last_events]
-    devs_values = devs.values[last_events]
+    divs_values = div_obj.values[last_events]
 
     # fiting to exponential model
-    devs_values_log = np.log(devs_values)
-    linreg = cp.stats.linregress(t, devs_values_log)
+    divs_values_log = np.log(divs_values)
+    linreg = cp.stats.linregress(t, divs_values_log)
     yearly_increment = np.exp(linreg.slope)-1
 
-    # checking if devidants are monotonically increasing
-    devs_shift = np.roll(devs_values, 1)
-    devs_shift[0] = devs_shift[1]
-    monotonic_test = devs_values - devs_shift >=0
+    # checking if dividends are monotonically increasing
+    divs_shift = np.roll(divs_values, 1)
+    divs_shift[0] = divs_shift[1]
+    monotonic_test = divs_values - divs_shift >=0
     is_monotonic = monotonic_test.all()
 
-    # checking if period between devidents exceeded 100 days
+    # checking if period between dividends exceeded 100 days
     t_D = t*365
     t_D_shift = np.roll(t_D, 1)
     t_D_shift[0] = t_D_shift[1]
