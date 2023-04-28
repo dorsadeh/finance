@@ -3,4 +3,5 @@ outputs/*
 downloaded_data/*
 __pycache__/*
 ticker_data.csv
+filtered_data.csv
 venv
