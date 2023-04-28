@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import scipy as cp
 
+import data_fetcher
+
 # %%
 def get_data():
     # Create an empty list to store the data for each ticker
@@ -145,6 +147,11 @@ output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
 
 if __name__ == '__main__':
+    fetcher = data_fetcher.DataFetcher("downloaded_data")
+    fetcher.init_downloads_directory()
+    for ticker in tickers:
+        fetcher.download_ticker_data(ticker)
+    
     csv_file_exists = os.path.exists(output_file_name)
     if csv_file_exists and not force_update_csv_file:
         print("data exists. not updating file...")
