@@ -3,6 +3,7 @@ import json
 import os.path
 import yfinance as yf
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
 import scipy as cp
 
@@ -47,8 +48,7 @@ def process_data():
     print("\n======= filter debt return time ======")
     df3['debtReturnTimeByEbitda'] = (df3['totalDebt'] - df3['totalCash']) / df3['ebitda']
     df3['debtReturnTimeByIncome'] = (df3['totalDebt'] - df3['totalCash']) / df3['netIncomeToCommon']
-     # TODO: handle N/A case
-    df4 = df3[df3['debtReturnTime'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA]
+    df4 = df3[(df3['debtReturnTimeByEbitda'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA)  | (df3['debtReturnTimeByEbitda'].isna())]
     print(df4.to_string())
 
     print("\n======= add lists presense ======")
@@ -105,8 +105,8 @@ dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','
 defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
 indexes = ['SCHD', 'VIG', 'VYM', 'VNQ','VNQI','RWO','MORT','REZ']
 
-tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
-# tickers = ['JNJ', 'XOM', 'MMM']
+# tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
+tickers = ['JNJ', 'XOM', 'MMM']
 
 # Define a list of the metrics we want to retrieve
 metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
