@@ -6,7 +6,23 @@ import pandas as pd
 import numpy as np
 import scipy as cp
 
-# %%
+# %% definitions
+
+class Settings:
+    def __init__(self, file_name: str) -> None:
+        self.user_file_name = file_name
+        self.default_file_name = './inputs/default_settings.json'
+        self.user_settings = dict
+        self.default_settings = dict
+        self.settings = dict
+
+    def validate(self):
+        pass
+    
+    def get(self):
+        pass
+    
+
 def get_data():
     # Create an empty list to store the data for each ticker
     ticker_data = []
@@ -143,9 +159,6 @@ def import_ticker_list(settings) -> list:
     return list(set(tickers)) # removes repetitions
 
 # %% run analysis
-
-start_date = '2013-04-21'  # 10 years ago
-end_date = '2023-04-21'  # today
 
 # Define a list of the metrics we want to retrieve
 metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
