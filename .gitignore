@@ -2,3 +2,4 @@
 outputs/*
 ticker_data.csv
 venv
+settings.json

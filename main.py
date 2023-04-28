@@ -9,23 +9,50 @@ import scipy as cp
 # %% definitions
 
 class Settings:
-    def __init__(self, file_name: str) -> None:
+    def __init__(self, file_name='./settings.json') -> None:
         self.user_file_name = file_name
         self.default_file_name = './inputs/default_settings.json'
         self.user_settings = dict
         self.default_settings = dict
         self.settings = dict
+
+        self.import_default()
+        self.import_user_settings()
+        self.validate_user_settings()
     
-    def import(self):
+    def import_default(self):
+        with open(self.default_file_name) as default_settings_file:
+            self.default_settings = json.load(default_settings_file)
+
+    def import_user_settings(self):
+        with open(self.user_file_name) as user_settings_file:
+            self.settings_settings = json.load(user_settings_file)
         
-    def validate(self):
-        pass
+    def validate_user_settings(self):
+        """
+        This function checks that all settings fields in the default settings file are existed in the user settings file.
+        It is assumed that the default settings file is perfectly compatible with the program as it is versioned by the developers.
+        If a a field is missing, it is taked from the default settings file.
+        At the end the user is asked to automatically add the missing fields to his file.
+        In the future this function may also check for value validation.
+        """
+        missing_fields = []
+        for field in self.default_settings.keys():
+            if field not in self.settings:
+                missing_fields.append(field)
+                self.settings[field] = self.default_settings[field]
+
+        if not missing_fields:
+            user_input = input('The following fields ' + missing_fields + ' are missing from the user settings file and are imported from the default settings file.\n Would you like to add the missing fields automatically to your settings.json file? y/n')
+            if user_input == 'y':
+                with open(self.user_file_name, 'rw') as user_file:
+                    json.dump(self.settings, user_file, indent=4)
     
-    def get(self, key: str):
-        if key in self.settings.keys():
-            return self.settings[key]
+    def get(self, field: str):
+        if field in self.settings.keys():
+            return self.settings[field]
         else:
-            raise RuntimeError('settings key does not exist, you may add it to your settings file')
+            raise RuntimeError('The settings field ' + field + ' does not exist, you may add it to your settings file')
     
 
 def get_data():
@@ -144,10 +171,6 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
                    'is_persistent': is_persistent}
     return output_dict
 
-def import_settings() -> dict:
-    with open("./settings.json") as settings_file:
-        settings = json.load(settings_file)
-    return settings
 
 def import_ticker_list(settings) -> list:
     with open("./inputs/tickers.json") as ticker_file:

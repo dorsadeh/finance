@@ -1,5 +1,5 @@
 {
     "included_ticker_lists": ["dividend_aristocrats", "dividaat_list"],
-    "start_date": "2013-04-21",  // 10 years ago
-    "end_date": "2023-04-21"  // today
+    "start_date": "2013-04-21",
+    "end_date": "2023-04-21"
 }
