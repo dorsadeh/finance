@@ -122,19 +122,25 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
                    'is_monotonic': is_monotonic,
                    'is_persistent': is_persistent}
     return output_dict
-# %% import tickers
-with open("./inputs/tickers.json") as ticker_file:
-    tickers_dict = json.load(ticker_file)
 
-lists_to_include = ["dividend_aristocrats", "dividaat_list"]
-tickers = []
-for list_name in lists_to_include:
-    if list_name in lists_to_include:
-        tickers = tickers +  tickers_dict[list_name]
-    else:
-        print("Tickers list: " + list_name + ", does not exist in tickers.json")
+def import_settings() -> dict:
+    with open("./settings.json") as settings_file:
+        settings = json.load(settings_file)
+    return settings
 
-tickers = list(set(tickers)) # remove repetitions
+def import_ticker_list(settings) -> list:
+    with open("./inputs/tickers.json") as ticker_file:
+        tickers_dict = json.load(ticker_file)
+
+    included_ticker_lists = settings["included_ticker_lists"]
+    tickers = []
+    for list_name in included_ticker_lists:
+        if list_name in included_ticker_lists:
+            tickers = tickers +  tickers_dict[list_name]
+        else:
+            print("Tickers list: " + list_name + ", does not exist in tickers.json")
+
+    return list(set(tickers)) # removes repetitions
 
 # %% run analysis
 
@@ -149,6 +155,8 @@ output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
 
 if __name__ == '__main__':
+    settings = import_settings()
+    tickers = import_ticker_list(settings)
     csv_file_exists = os.path.exists(output_file_name)
     if csv_file_exists and not force_update_csv_file:
         print("data exists. not updating file...")
