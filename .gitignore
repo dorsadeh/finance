@@ -1,4 +1,6 @@
 .idea
 outputs/*
+downloaded_data/*
+__pycache__/*
 ticker_data.csv
 venv
