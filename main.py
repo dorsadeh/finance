@@ -9,42 +9,15 @@ import scipy as cp
 import data_fetcher
 
 # %%
-def get_data():
-    # Create an empty list to store the data for each ticker
-    ticker_data = []
-    cnt = 0
-    # Loop through each ticker and retrieve the data for the specified metrics
+def get_data(metrics: list):
+    fetcher = data_fetcher.DataFetcher("downloaded_data")
+    fetcher.init_downloads_directory()
     for ticker in tickers:
-        cnt += 1
-        # Download the ticker data using yfinance
-        print("downloading ticker data for '" + ticker + "' - " + str(cnt) + "/" + str(len(tickers)))
-        ticker_info = yf.Ticker(ticker)
+        fetcher.download_ticker_data(ticker)
 
-        # Get the historical stock prices for the start and end dates
-        stock_data = yf.Ticker(ticker).history(start=start_date, end=end_date)
-        # Calculate the stock growth in price
-        start_price = stock_data['Close'][0]
-        end_price = stock_data['Close'][-1]
-        # growth = (end_price - start_price) / start_price * 100
-        # print(f"The stock price of {ticker} has grown by {growth:.2f}% over the past 10 years. start_price={start_price:.2f}, end_price={end_price:.2f}")
-
-        # Extract the data for the specified metrics and store it in a dictionary
-        data = {}
-        for metric in metrics:
-            try:
-                value = ticker_info.info[metric]
-            except:
-                value = 'N/A'
-            data[metric] = value
-        # with open("data.json", 'w', encoding='utf-8') as f:
-        #     json.dump(ticker_info.info, f, ensure_ascii=False, indent=2)
-
-        data['price_today'] = end_price
-        data['price_10_years_ago'] = start_price
-        data['growth'] = (end_price - start_price) / start_price * 100
-
-        # Add the ticker's data to the list of data for all tickers
-        ticker_data.append(data)
+    ticker_data = []
+    for ticker in tickers:
+        ticker_data.append(fetcher.get_ticker_info(ticker, metrics))
 
     # Convert the list of dictionaries to a Pandas DataFrame
     df = pd.DataFrame(ticker_data, index=tickers)
@@ -133,11 +106,7 @@ defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EAD
 indexes = ['SCHD', 'VIG', 'VYM', 'VNQ','VNQI','RWO','MORT','REZ']
 
 tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
-
-
-
-start_date = '2013-04-21'  # 10 years ago
-end_date = '2023-04-21'  # today
+# tickers = ['JNJ', 'XOM', 'MMM']
 
 # Define a list of the metrics we want to retrieve
 metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
@@ -146,16 +115,11 @@ metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 
 output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
 
-if __name__ == '__main__':
-    fetcher = data_fetcher.DataFetcher("downloaded_data")
-    fetcher.init_downloads_directory()
-    for ticker in tickers:
-        fetcher.download_ticker_data(ticker)
-    
+if __name__ == '__main__':   
     csv_file_exists = os.path.exists(output_file_name)
     if csv_file_exists and not force_update_csv_file:
         print("data exists. not updating file...")
     else:
         print("updating data for all tickers")
-        get_data()
+        get_data(metrics)
     process_data()
