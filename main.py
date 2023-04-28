@@ -15,12 +15,17 @@ class Settings:
         self.user_settings = dict
         self.default_settings = dict
         self.settings = dict
-
+    
+    def import(self):
+        
     def validate(self):
         pass
     
-    def get(self):
-        pass
+    def get(self, key: str):
+        if key in self.settings.keys():
+            return self.settings[key]
+        else:
+            raise RuntimeError('settings key does not exist, you may add it to your settings file')
     
 
 def get_data():
