@@ -113,13 +113,7 @@ metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 
            'totalCash', 'netIncomeToCommon']
 
 output_file_name = 'ticker_data.csv'
-force_update_csv_file = False
 
 if __name__ == '__main__':   
-    csv_file_exists = os.path.exists(output_file_name)
-    if csv_file_exists and not force_update_csv_file:
-        print("data exists. not updating file...")
-    else:
-        print("updating data for all tickers")
-        get_data(metrics)
+    get_data(metrics)
     process_data()
