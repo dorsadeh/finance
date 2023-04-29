@@ -9,9 +9,9 @@ class DataFetcher:
     """
     This module downloads data from yahoo finance and saves it locally in a downloads directory
     """
-    def __init__(self, directory_path: str, import_start_date: datetime=datetime(2008,1,1)) -> None:
-        self.module_version = 1
-        self.directory_path = directory_path
+    def __init__(self, downloaded_data_dir_path: str, import_start_date: datetime=datetime(2008,1,1)) -> None:
+        __version__ = "0.1.0"
+        self.downloaded_data_dir_path = downloaded_data_dir_path
         self.start_date = import_start_date
         
     def init_downloads_directory(self, clear_contents: bool=False) -> None:
@@ -19,24 +19,18 @@ class DataFetcher:
         checks if a downloads directory exists, and if not, creates it
         if clear flag is set to true, directory is cleared
         """
-        # if not os.path.exists(self.directory_path):
-        #     os.makedirs(self.directory_path)
-        #     print("Directory created:", self.directory_path)
-        # else:
-        #     print("Directory already exists:", self.directory_path)
-
-        if os.path.exists(self.directory_path):
+        if os.path.exists(self.downloaded_data_dir_path):
             if clear_contents:
-                shutil.rmtree(self.directory_path)
-                print(f"The contents of the directory '{self.directory_path}' have been deleted.")
+                shutil.rmtree(self.downloaded_data_dir_path)
+                print(f"The contents of the directory '{self.downloaded_data_dir_path}' have been deleted.")
             else:
-                print(f"The directory '{self.directory_path}' already exists.")
+                print(f"The directory '{self.downloaded_data_dir_path}' already exists.")
         else:
-            os.makedirs(self.directory_path)
-            print(f"The directory '{self.directory_path}' has been created.")
+            os.makedirs(self.downloaded_data_dir_path)
+            print(f"The directory '{self.downloaded_data_dir_path}' has been created.")
     
     def __get_paths(self, ticker:str) -> dict:
-        dir_path = os.path.join(self.directory_path, ticker)
+        dir_path = os.path.join(self.downloaded_data_dir_path, ticker)
         info_json_path = os.path.join(dir_path, "info.json") 
         dividends_path = os.path.join(dir_path, "dividends.csv")
         stock_history_path = os.path.join(dir_path, "history.csv")
@@ -85,12 +79,11 @@ class DataFetcher:
         2. stock price at begining, end and growth
         3. TODO: add dividend consistency info
         """
-        dir_path = os.path.join(self.directory_path, ticker)
+        dir_path = os.path.join(self.downloaded_data_dir_path, ticker)
         if not os.path.exists(dir_path):
             return {}
        
         paths = self.__get_paths(ticker)
-        info_json_path = os.path.join(dir_path, "info.json")
         with open(paths["info_json_path"], "r") as f:
             ticker_info_dict = json.load(f)
         data = {}
