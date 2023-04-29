@@ -142,7 +142,7 @@ def import_ticker_list() -> list:
     return list(set(tickers)) # removes repetitions
 
 # %% run analysis
-settings = Settings()
+
 
 # Define a list of the metrics we want to retrieve
 metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
@@ -152,7 +152,7 @@ output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
 
 if __name__ == '__main__':
-    settings = import_settings()
+    settings = Settings()
     tickers = import_ticker_list(settings)
     csv_file_exists = os.path.exists(output_file_name)
     if csv_file_exists and not force_update_csv_file:
