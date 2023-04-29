@@ -13,11 +13,11 @@ default_settings = {
 class Settings():
     def __init__(self) -> None:
         self.user_file_name = './settings.json'
-        self.settings = dict
+        self.settings = dict()
 
-        self._included_ticker_lists = list
-        self._start_date = datetime.date
-        self._end_date = datetime.date
+        self._included_ticker_lists = list()
+        self._start_date = datetime.date()
+        self._end_date = datetime.date()
 
         self.load_user_settings()
 
