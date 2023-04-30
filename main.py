@@ -1,16 +1,18 @@
 # %%
 import json
 import os.path
+import sys
 import yfinance as yf
 import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
 import scipy as cp
+import pre_run
 
 import data_fetcher
 
 # %%
-def get_data(metrics: list):
+def get_data(metrics: list, tickers: list):
     fetcher = data_fetcher.DataFetcher("downloaded_data")
     fetcher.init_downloads_directory()
     for ticker in tickers:
@@ -27,10 +29,10 @@ def get_data(metrics: list):
     df.to_csv(output_file_name)
 
 def process_data():
-    DIVIDEND_YIELD_MIN_VAL = 0.020
-    PAYOUT_RATIO_MAX_VAL = 0.7
-    DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = 5.0
-    DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = 5.0
+    DIVIDEND_YIELD_MIN_VAL = settings.dividend_yield_min_val
+    PAYOUT_RATIO_MAX_VAL = settings.payout_ratio_max_val
+    DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = settings.debt_return_time_max_val_by_ebitda
+    DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = settings.debt_return_time_max_val_by_income
 
     print("======= all data ======")
     df0 = pd.read_csv(output_file_name)
@@ -49,13 +51,6 @@ def process_data():
     df3['debtReturnTimeByEbitda'] = (df3['totalDebt'] - df3['totalCash']) / df3['ebitda']
     df3['debtReturnTimeByIncome'] = (df3['totalDebt'] - df3['totalCash']) / df3['netIncomeToCommon']
     df4 = df3[(df3['debtReturnTimeByEbitda'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA)  | (df3['debtReturnTimeByEbitda'].isna())]
-    print(df4.to_string())
-
-    print("\n======= add lists presense ======")
-    df4['isDividendAristocrat'] = df4['Unnamed: 0'].isin(dividend_aristocrats)
-    df4['isDefenceCompany'] = df4['Unnamed: 0'].isin(defence_companies_list)
-    df4['isInIdoList'] = df4['Unnamed: 0'].isin(ido_list)
-    df4['isInDividaatList'] = df4['Unnamed: 0'].isin(dividaat_list)
     print(df4.to_string())
     df4.to_csv("filtered_data.csv")
 
@@ -87,7 +82,7 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
     is_monotonic = monotonic_test.all()
 
     # checking if period between dividends exceeded 100 days
-    t_days = t_years*365
+    t_days = t_years*DAYS_PER_YEAR
     t_days_shift = np.roll(t_days, 1)
     t_days_shift[0] = t_days_shift[1]
     persistant_test = t_days - t_days_shift < 100
@@ -97,16 +92,24 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
                    'is_monotonic': is_monotonic,
                    'is_persistent': is_persistent}
     return output_dict
-# %%
 
-dividend_aristocrats = ['DOV','GPC','PG','EMR','MMM','CINF','KO','JNJ','CL','ITW','HRL','SWK','FRT','SYY','GWW','BDX','PPG','TGT','ABBV','ABT','KMB','PEP','NUE','SPGI','ADM','WMT','VFC','ED','LOW','ADP','WBA','PNR','MCD','MDT','SHW','BEN','APD','AMCR','XOM','AFL','CTAS','ATO','MKC','TROW','CAH','CLX','CVX','AOS','ECL','WST','ROP','LIN','CAT','CB','EXPD','BRO','ALB','ESS','O','IBM','NEE','CHD','GD']
-ido_list = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
-dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','GPC','KTB','LANC','LECO','MO','PB','RBCAA','SCL','SWK','TROW','UGI','UMBF','VFC']
-defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
-indexes = ['SCHD', 'VIG', 'VYM', 'VNQ','VNQI','RWO','MORT','REZ']
 
-tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
-# tickers = ['JNJ', 'XOM', 'MMM']
+def import_ticker_list() -> list:
+    with open("./inputs/tickers.json") as ticker_file:
+        tickers_dict = json.load(ticker_file)
+
+    included_ticker_lists = settings.included_ticker_lists
+    tickers = []
+    for list_name in included_ticker_lists:
+        if list_name in included_ticker_lists:
+            tickers = tickers +  tickers_dict[list_name]
+        else:
+            print("Tickers list: " + list_name + ", does not exist in tickers.json")
+
+    return list(set(tickers)) # removes repetitions
+
+# %% run analysis
+
 
 # Define a list of the metrics we want to retrieve
 metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
@@ -114,6 +117,13 @@ metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 
 
 output_file_name = 'ticker_data.csv'
 
-if __name__ == '__main__':   
-    get_data(metrics)
+if __name__ == '__main__':
+    try:
+        settings = pre_run.Settings()
+    except RuntimeError as e:
+        print(e)
+        sys.exit()
+    tickers = import_ticker_list()
+    get_data(metrics, tickers)
     process_data()
+# %%
