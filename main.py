@@ -1,11 +1,12 @@
 # %%
 import json
 import os.path
+import sys
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import scipy as cp
-from pre_run import Settings
+import pre_run
 
 # %% definitions
 
@@ -152,7 +153,11 @@ output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
 
 if __name__ == '__main__':
-    settings = Settings()
+    try:
+        settings = pre_run.Settings()
+    except RuntimeError as e:
+        print(e)
+        sys.exit()
     tickers = import_ticker_list(settings)
     csv_file_exists = os.path.exists(output_file_name)
     if csv_file_exists and not force_update_csv_file:

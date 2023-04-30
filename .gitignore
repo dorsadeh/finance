@@ -3,3 +3,4 @@ outputs/*
 ticker_data.csv
 venv
 settings.json
+__pycache__/
