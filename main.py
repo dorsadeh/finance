@@ -9,8 +9,6 @@ import scipy as cp
 import pre_run
 
 # %% definitions
-
-
 def get_data():
     # Create an empty list to store the data for each ticker
     ticker_data = []
@@ -55,10 +53,10 @@ def get_data():
     df.to_csv(output_file_name)
 
 def process_data():
-    DIVIDEND_YIELD_MIN_VAL = 0.020
-    PAYOUT_RATIO_MAX_VAL = 0.7
-    DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = 5.0
-    DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = 5.0
+    DIVIDEND_YIELD_MIN_VAL = settings.dividend_yield_min_val
+    PAYOUT_RATIO_MAX_VAL = settings.payout_ratio_max_val
+    DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = settings.debt_return_time_max_val_by_ebitda
+    DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = settings.debt_return_time_max_val_by_income
 
     print("======= all data ======")
     df0 = pd.read_csv(output_file_name)
@@ -116,7 +114,7 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
     is_monotonic = monotonic_test.all()
 
     # checking if period between dividends exceeded 100 days
-    t_days = t_years*365
+    t_days = t_years*DAYS_PER_YEAR
     t_days_shift = np.roll(t_days, 1)
     t_days_shift[0] = t_days_shift[1]
     persistant_test = t_days - t_days_shift < 100
@@ -158,7 +156,7 @@ if __name__ == '__main__':
     except RuntimeError as e:
         print(e)
         sys.exit()
-    tickers = import_ticker_list(settings)
+    tickers = import_ticker_list()
     csv_file_exists = os.path.exists(output_file_name)
     if csv_file_exists and not force_update_csv_file:
         print("data exists. not updating file...")
@@ -166,3 +164,4 @@ if __name__ == '__main__':
         print("updating data for all tickers")
         get_data()
     process_data()
+# %%
