@@ -1,12 +1,14 @@
 # %%
 import json
 import os.path
+import sys
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import scipy as cp
+import pre_run
 
-# %%
+# %% definitions
 def get_data():
     # Create an empty list to store the data for each ticker
     ticker_data = []
@@ -51,10 +53,10 @@ def get_data():
     df.to_csv(output_file_name)
 
 def process_data():
-    DIVIDEND_YIELD_MIN_VAL = 0.020
-    PAYOUT_RATIO_MAX_VAL = 0.7
-    DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = 5.0
-    DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = 5.0
+    DIVIDEND_YIELD_MIN_VAL = settings.dividend_yield_min_val
+    PAYOUT_RATIO_MAX_VAL = settings.payout_ratio_max_val
+    DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = settings.debt_return_time_max_val_by_ebitda
+    DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = settings.debt_return_time_max_val_by_income
 
     print("======= all data ======")
     df0 = pd.read_csv(output_file_name)
@@ -112,7 +114,7 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
     is_monotonic = monotonic_test.all()
 
     # checking if period between dividends exceeded 100 days
-    t_days = t_years*365
+    t_days = t_years*DAYS_PER_YEAR
     t_days_shift = np.roll(t_days, 1)
     t_days_shift[0] = t_days_shift[1]
     persistant_test = t_days - t_days_shift < 100
@@ -122,20 +124,24 @@ def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int
                    'is_monotonic': is_monotonic,
                    'is_persistent': is_persistent}
     return output_dict
-# %%
-
-dividend_aristocrats = ['DOV','GPC','PG','EMR','MMM','CINF','KO','JNJ','CL','ITW','HRL','SWK','FRT','SYY','GWW','BDX','PPG','TGT','ABBV','ABT','KMB','PEP','NUE','SPGI','ADM','WMT','VFC','ED','LOW','ADP','WBA','PNR','MCD','MDT','SHW','BEN','APD','AMCR','XOM','AFL','CTAS','ATO','MKC','TROW','CAH','CLX','CVX','AOS','ECL','WST','ROP','LIN','CAT','CB','EXPD','BRO','ALB','ESS','O','IBM','NEE','CHD','GD']
-ido_list = ['JNJ', 'XOM', 'CVX', 'KO', 'MCD', 'RTX', 'IBM', 'ADP', 'TGT', 'ITW', 'CL', 'APD', 'EMR', 'AFL', 'ED', 'WBA', 'GPC', 'CLX', 'FC', 'PII', 'SON', 'LEG', 'MGEE', 'WLYB', 'UVV', 'TDS', 'ARTNA', 'MMM']
-dividaat_list = ['ALB','BANF','BEN','CAH','CARR','CB','CBSH','CBU','CHRW','ES','GPC','KTB','LANC','LECO','MO','PB','RBCAA','SCL','SWK','TROW','UGI','UMBF','VFC']
-defence_companies_list = ['LMT', 'RTX', 'ESLT', 'BA', 'GD', 'NOC', 'BAESY', 'EADSY', 'THLEF', 'SAIC','HII','LHX','GE','HON','LDOS','HII','TDG','TXT']
-indexes = ['SCHD', 'VIG', 'VYM', 'VNQ','VNQI','RWO','MORT','REZ']
-
-tickers = list( set(dividend_aristocrats).union( set(ido_list), set(dividaat_list), set(defence_companies_list), set(indexes) ) )
 
 
+def import_ticker_list() -> list:
+    with open("./inputs/tickers.json") as ticker_file:
+        tickers_dict = json.load(ticker_file)
 
-start_date = '2013-04-21'  # 10 years ago
-end_date = '2023-04-21'  # today
+    included_ticker_lists = settings.included_ticker_lists
+    tickers = []
+    for list_name in included_ticker_lists:
+        if list_name in included_ticker_lists:
+            tickers = tickers +  tickers_dict[list_name]
+        else:
+            print("Tickers list: " + list_name + ", does not exist in tickers.json")
+
+    return list(set(tickers)) # removes repetitions
+
+# %% run analysis
+
 
 # Define a list of the metrics we want to retrieve
 metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
@@ -145,6 +151,12 @@ output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
 
 if __name__ == '__main__':
+    try:
+        settings = pre_run.Settings()
+    except RuntimeError as e:
+        print(e)
+        sys.exit()
+    tickers = import_ticker_list()
     csv_file_exists = os.path.exists(output_file_name)
     if csv_file_exists and not force_update_csv_file:
         print("data exists. not updating file...")
@@ -152,3 +164,4 @@ if __name__ == '__main__':
         print("updating data for all tickers")
         get_data()
     process_data()
+# %%
