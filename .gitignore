@@ -1,6 +1,10 @@
 .idea
 outputs/*
+inputs/*
+temp/
+__pycache__/*
+downloaded_data/*
 ticker_data.csv
+filtered_data.csv
 venv
 settings.json
-__pycache__/

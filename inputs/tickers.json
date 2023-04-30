@@ -1,7 +1,0 @@
-{
-    "dividend_aristocrats": ["DOV","GPC","PG","EMR","MMM","CINF","KO","JNJ","CL","ITW","HRL","SWK","FRT","SYY","GWW","BDX","PPG","TGT","ABBV","ABT","KMB","PEP","NUE","SPGI","ADM","WMT","VFC","ED","LOW","ADP","WBA","PNR","MCD","MDT","SHW","BEN","APD","AMCR","XOM","AFL","CTAS","ATO","MKC","TROW","CAH","CLX","CVX","AOS","ECL","WST","ROP","LIN","CAT","CB","EXPD","BRO","ALB","ESS","O","IBM","NEE","CHD","GD"],
-    "ido_list": ["JNJ", "XOM", "CVX", "KO", "MCD", "RTX", "IBM", "ADP", "TGT", "ITW", "CL", "APD", "EMR", "AFL", "ED", "WBA", "GPC", "CLX", "FC", "PII", "SON", "LEG", "MGEE", "WLYB", "UVV", "TDS", "ARTNA", "MMM"],
-    "dividaat_list": ["ALB","BANF","BEN","CAH","CARR","CB","CBSH","CBU","CHRW","ES","GPC","KTB","LANC","LECO","MO","PB","RBCAA","SCL","SWK","TROW","UGI","UMBF","VFC"],
-    "defence_companies_list": ["LMT", "RTX", "ESLT", "BA", "GD", "NOC", "BAESY", "EADSY", "THLEF", "SAIC","HII","LHX","GE","HON","LDOS","HII","TDG","TXT"],
-    "indexes": ["SCHD", "VIG", "VYM", "VNQ","VNQI","RWO","MORT","REZ"]
-}

@@ -4,47 +4,23 @@ import os.path
 import sys
 import yfinance as yf
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
 import scipy as cp
 import pre_run
 
-# %% definitions
-def get_data():
-    # Create an empty list to store the data for each ticker
-    ticker_data = []
-    cnt = 0
-    # Loop through each ticker and retrieve the data for the specified metrics
+import data_fetcher
+
+# %%
+def get_data(metrics: list, tickers: list):
+    fetcher = data_fetcher.DataFetcher("downloaded_data")
+    fetcher.init_downloads_directory()
     for ticker in tickers:
-        cnt += 1
-        # Download the ticker data using yfinance
-        print("downloading ticker data for '" + ticker + "' - " + str(cnt) + "/" + str(len(tickers)))
-        ticker_info = yf.Ticker(ticker)
+        fetcher.download_ticker_data(ticker)
 
-        # Get the historical stock prices for the start and end dates
-        stock_data = yf.Ticker(ticker).history(start=start_date, end=end_date)
-        # Calculate the stock growth in price
-        start_price = stock_data['Close'][0]
-        end_price = stock_data['Close'][-1]
-        # growth = (end_price - start_price) / start_price * 100
-        # print(f"The stock price of {ticker} has grown by {growth:.2f}% over the past 10 years. start_price={start_price:.2f}, end_price={end_price:.2f}")
-
-        # Extract the data for the specified metrics and store it in a dictionary
-        data = {}
-        for metric in metrics:
-            try:
-                value = ticker_info.info[metric]
-            except:
-                value = 'N/A'
-            data[metric] = value
-        # with open("data.json", 'w', encoding='utf-8') as f:
-        #     json.dump(ticker_info.info, f, ensure_ascii=False, indent=2)
-
-        data['price_today'] = end_price
-        data['price_10_years_ago'] = start_price
-        data['growth'] = (end_price - start_price) / start_price * 100
-
-        # Add the ticker's data to the list of data for all tickers
-        ticker_data.append(data)
+    ticker_data = []
+    for ticker in tickers:
+        ticker_data.append(fetcher.get_ticker_info(ticker, metrics))
 
     # Convert the list of dictionaries to a Pandas DataFrame
     df = pd.DataFrame(ticker_data, index=tickers)
@@ -74,15 +50,7 @@ def process_data():
     print("\n======= filter debt return time ======")
     df3['debtReturnTimeByEbitda'] = (df3['totalDebt'] - df3['totalCash']) / df3['ebitda']
     df3['debtReturnTimeByIncome'] = (df3['totalDebt'] - df3['totalCash']) / df3['netIncomeToCommon']
-     # TODO: handle N/A case
-    df4 = df3[df3['debtReturnTime'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA]
-    print(df4.to_string())
-
-    print("\n======= add lists presense ======")
-    df4['isDividendAristocrat'] = df4['Unnamed: 0'].isin(dividend_aristocrats)
-    df4['isDefenceCompany'] = df4['Unnamed: 0'].isin(defence_companies_list)
-    df4['isInIdoList'] = df4['Unnamed: 0'].isin(ido_list)
-    df4['isInDividaatList'] = df4['Unnamed: 0'].isin(dividaat_list)
+    df4 = df3[(df3['debtReturnTimeByEbitda'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA)  | (df3['debtReturnTimeByEbitda'].isna())]
     print(df4.to_string())
     df4.to_csv("filtered_data.csv")
 
@@ -148,7 +116,6 @@ metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 
            'totalCash', 'netIncomeToCommon']
 
 output_file_name = 'ticker_data.csv'
-force_update_csv_file = False
 
 if __name__ == '__main__':
     try:
@@ -157,11 +124,6 @@ if __name__ == '__main__':
         print(e)
         sys.exit()
     tickers = import_ticker_list()
-    csv_file_exists = os.path.exists(output_file_name)
-    if csv_file_exists and not force_update_csv_file:
-        print("data exists. not updating file...")
-    else:
-        print("updating data for all tickers")
-        get_data()
+    get_data(metrics, tickers)
     process_data()
 # %%

@@ -59,6 +59,7 @@ class Settings():
         
     def load_user_settings(self):
         # test if settings.json file exist, if not we write it
+        print("")
         if not os.path.isfile(self.user_file_name):
             with open(self.user_file_name, 'w') as user_settings_file:
                 json.dump(default_settings, user_settings_file, indent=4)
