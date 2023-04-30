@@ -138,8 +138,8 @@ start_date = '2013-04-21'  # 10 years ago
 end_date = '2023-04-21'  # today
 
 # Define a list of the metrics we want to retrieve
-metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
-           'totalCash', 'netIncomeToCommon']
+metrics = ['dividendYield', 'shortName', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
+           'totalCash', 'netIncomeToCommon', 'debtToEquity']
 
 output_file_name = 'ticker_data.csv'
 force_update_csv_file = False
