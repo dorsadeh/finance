@@ -65,7 +65,7 @@ class DataFetcher:
         
         # save dividends series
         dividends = ticker_info.dividends
-        dividends.to_csv(paths["dividends_path"])
+        dividends.to_csv(paths["dividends_path"], date_format="%Y-%m-%d")
 
         # save history series
         history = ticker_info.history(start=self.start_date, end=datetime.now())
@@ -102,11 +102,12 @@ class DataFetcher:
         data['growth'] = (end_price - start_price) / start_price * 100
         return data
     
-    def get_ticker_dividends_history(self, ticker:str):
+    def get_ticker_dividends_history(self, ticker:str) -> pd.DataFrame:
         dir_path = os.path.join(self.downloaded_data_dir_path, ticker)
         if not os.path.exists(dir_path):
             return {}
        
         paths = self.__get_paths(ticker)
-        data = pd.read_csv(paths["dividends_path"])
+        data = pd.read_csv(paths["dividends_path"], parse_dates=['Date'])
+        data['Date'] = pd.to_datetime(data['Date'], utc=True)
         return data

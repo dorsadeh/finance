@@ -8,7 +8,6 @@ pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
 import scipy as cp
 import pre_run
-
 import data_fetcher
 
 # %%
@@ -18,12 +17,16 @@ def get_data(metrics: list, tickers: list):
     for ticker in tickers:
         fetcher.download_ticker_data(ticker)
 
-    ticker_data = []
+    tickers_data = []
     for ticker in tickers:
-        ticker_data.append(fetcher.get_ticker_info(ticker, metrics))
+        ticker_data = fetcher.get_ticker_info(ticker, metrics)
+        divs = fetcher.get_ticker_dividends_history(ticker)
+        divs_growth = dividends_growth(divs, 5)
+        ticker_data.update(divs_growth)
+        tickers_data.append(ticker_data)
 
     # Convert the list of dictionaries to a Pandas DataFrame
-    df = pd.DataFrame(ticker_data, index=tickers)
+    df = pd.DataFrame(tickers_data, index=tickers)
 
     # add dividend exponential growth
     
@@ -57,7 +60,7 @@ def process_data():
     print(df4.to_string())
     df4.to_csv("filtered_data.csv")
 
-def cal_dividend_exp_growth(div_obj: pd.core.series.Series, number_of_years: int)-> dict:
+def dividends_growth(dividends_df: pd.core.series.Series, number_of_years: int)-> dict:
     """
     This function calculate the average exponential increments of the dividend
     and check wheter it is monotonically increasing and if it persistent with
@@ -65,18 +68,18 @@ def cal_dividend_exp_growth(div_obj: pd.core.series.Series, number_of_years: int
     """
     # finding the events during the last p years
     DAYS_PER_YEAR = 365
-    t_abs_all = div_obj.index.values
-    t_ns_all = np.datetime64('today')-t_abs_all
+    t_abs_all = dividends_df["Date"].values
+    t_ns_all = np.datetime64('today') - t_abs_all
     t_days_all = t_ns_all.astype('timedelta64[D]')
     t_years = -t_days_all.astype('float64')/DAYS_PER_YEAR
     last_events_indices = t_years>-number_of_years
     t_years = t_years[last_events_indices]
-    divs_values = div_obj.values[last_events_indices]
+    divs_values = dividends_df["Dividends"].values[last_events_indices]
 
     # fiting to exponential model
     divs_values_log = np.log(divs_values)
     linreg_result = cp.stats.linregress(t_years, divs_values_log)
-    yearly_increment = np.exp(linreg_result.slope)-1
+    exp_mean_yearly_growth = np.exp(linreg_result.slope)-1
 
     # checking if dividends are monotonically increasing
     divs_shift = np.roll(divs_values, 1)
@@ -91,7 +94,7 @@ def cal_dividend_exp_growth(div_obj: pd.core.series.Series, number_of_years: int
     persistant_test = t_days - t_days_shift < 100
     is_persistent= persistant_test.all()
 
-    output_dict = {'yearly_increment': yearly_increment,
+    output_dict = {'exp_mean_yearly_growth': exp_mean_yearly_growth,
                    'is_monotonic': is_monotonic,
                    'is_persistent': is_persistent}
     return output_dict
