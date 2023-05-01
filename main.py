@@ -11,7 +11,7 @@ import pre_run
 import data_fetcher
 
 # %%
-def get_data(metrics: list, tickers: list):
+def get_data(metrics: list, tickers: list, years_dividends_growth: float):
     fetcher = data_fetcher.DataFetcher("downloaded_data")
     fetcher.init_downloads_directory()
     for ticker in tickers:
@@ -21,7 +21,7 @@ def get_data(metrics: list, tickers: list):
     for ticker in tickers:
         ticker_data = fetcher.get_ticker_info(ticker, metrics)
         divs = fetcher.get_ticker_dividends_history(ticker)
-        divs_growth = dividends_growth(divs, 5)
+        divs_growth = dividends_growth(divs, years_dividends_growth)
         ticker_data.update(divs_growth)
         tickers_data.append(ticker_data)
 
@@ -130,6 +130,6 @@ if __name__ == '__main__':
         print(e)
         sys.exit()
     tickers = import_ticker_list()
-    get_data(metrics, tickers)
+    get_data(metrics, tickers, settings.years_dividends_growth)
     process_data()
 # %%

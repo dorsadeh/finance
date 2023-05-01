@@ -12,6 +12,7 @@ default_settings = {
     "payout_ratio_max_val": 0.7,
     "debt_return_time_max_val_by_ebitda": 5.0,
     "debt_return_time_max_val_by_income": 5.0,
+    "years_dividends_growth": 5,
 }
         
 class Settings():
@@ -26,6 +27,7 @@ class Settings():
         self._payout_ratio_max_val = float()
         self._debt_return_time_max_val_by_ebitda = float()
         self._debt_return_time_max_val_by_income = float()
+        self._years_dividends_growth = float()
 
         self.load_user_settings()
 
@@ -57,6 +59,10 @@ class Settings():
     def debt_return_time_max_val_by_income(self) -> float:
         return self._debt_return_time_max_val_by_income
         
+    @property
+    def years_dividends_growth(self) -> float:
+        return self._years_dividends_growth
+    
     def load_user_settings(self):
         # test if settings.json file exist, if not we write it
         print("")
@@ -85,3 +91,4 @@ class Settings():
         self._payout_ratio_max_val = user_settings['payout_ratio_max_val']
         self._debt_return_time_max_val_by_ebitda = user_settings['debt_return_time_max_val_by_ebitda']
         self._debt_return_time_max_val_by_income = user_settings['debt_return_time_max_val_by_income']
+        self._years_dividends_growth = user_settings['years_dividends_growth']
