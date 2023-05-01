@@ -1,6 +1,5 @@
 .idea
 outputs/*
-inputs/*
 temp/
 __pycache__/*
 downloaded_data/*
