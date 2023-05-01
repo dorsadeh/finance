@@ -25,6 +25,9 @@ def get_data(metrics: list, tickers: list):
     # Convert the list of dictionaries to a Pandas DataFrame
     df = pd.DataFrame(ticker_data, index=tickers)
 
+    # add dividend exponential growth
+    
+
     # Save the data to a CSV file
     df.to_csv(output_file_name)
 
@@ -54,7 +57,7 @@ def process_data():
     print(df4.to_string())
     df4.to_csv("filtered_data.csv")
 
-def cal_dividend_increament(div_obj: pd.core.series.Series, number_of_years: int)-> dict:
+def cal_dividend_exp_growth(div_obj: pd.core.series.Series, number_of_years: int)-> dict:
     """
     This function calculate the average exponential increments of the dividend
     and check wheter it is monotonically increasing and if it persistent with
