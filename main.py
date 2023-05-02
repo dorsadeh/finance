@@ -15,11 +15,21 @@ import data_fetcher
 def get_data(metrics: list, tickers: list):
     fetcher = data_fetcher.DataFetcher("downloaded_data")
     fetcher.init_downloads_directory()
-    for ticker in tickers:
-        fetcher.download_ticker_data(ticker)
+    failed_list = []
+    
+    for cnt,ticker in enumerate(tickers):
+        print("downloading ticker " + str(cnt) + "/" + str(len(tickers)))
+        try:
+            fetcher.download_ticker_data(ticker)
+        except Exception as e:
+            print("Ticker " + ticker + "download failed")
+            failed_list.append(ticker)
+            continue
+    print("failed_list = " + str(failed_list))
 
     ticker_data = []
-    for ticker in tickers:
+    for cnt, ticker in enumerate(tickers):
+        print("getting data for " + ticker + "  " + str(cnt) + "/" + str(len(tickers)))
         ticker_data.append(fetcher.get_ticker_info(ticker, metrics))
 
     # Convert the list of dictionaries to a Pandas DataFrame

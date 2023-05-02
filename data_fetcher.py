@@ -65,7 +65,7 @@ class DataFetcher:
         
         # save dividends series
         dividends = ticker_info.dividends
-        dividends.to_csv(paths["dividends_path"])
+        dividends.to_csv(paths["dividends_path"], date_format="%Y-%m-%d")
 
         # save history series
         history = ticker_info.history(start=self.start_date, end=datetime.now())
