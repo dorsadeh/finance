@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 
 
 default_settings = {
-    "included_ticker_lists": ["dividend_aristocrats", "dividaat_list"],
+    "included_ticker_lists": ["dividend_aristocrats", "dividaat_list", "challengers", "contenders", "champions"],
     "start_date": datetime.datetime.strftime(datetime.datetime.now() - relativedelta(years=10), '%Y-%m-%d'),
     "end_date": datetime.datetime.strftime(datetime.date.today(), '%Y-%m-%d'),
     "dividend_yield_min_val": 0.020,

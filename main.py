@@ -2,6 +2,7 @@
 import json
 import os.path
 import sys
+import math
 import yfinance as yf
 import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -14,14 +15,24 @@ import data_fetcher
 def get_data(metrics: list, tickers: list, years_dividends_growth: float):
     fetcher = data_fetcher.DataFetcher("downloaded_data")
     fetcher.init_downloads_directory()
-    for ticker in tickers:
-        fetcher.download_ticker_data(ticker)
+    failed_list = []
+    
+    for cnt,ticker in enumerate(tickers):
+        print("downloading ticker " + str(cnt) + "/" + str(len(tickers)))
+        try:
+            fetcher.download_ticker_data(ticker)
+        except Exception as e:
+            print("Ticker " + ticker + "download failed")
+            failed_list.append(ticker)
+            continue
+    print("failed_list = " + str(failed_list))
 
     tickers_data = []
-    for ticker in tickers:
+    for cnt, ticker in enumerate(tickers):
+        print("getting data for " + ticker + "  " + str(cnt) + "/" + str(len(tickers)))
         ticker_data = fetcher.get_ticker_info(ticker, metrics)
         divs = fetcher.get_ticker_dividends_history(ticker)
-        divs_growth = dividends_growth(divs, years_dividends_growth)
+        divs_growth = dividends_growth(divs, years_dividends_growth, ticker)
         ticker_data.update(divs_growth)
         tickers_data.append(ticker_data)
 
@@ -60,7 +71,7 @@ def process_data():
     print(df4.to_string())
     df4.to_csv("filtered_data.csv")
 
-def dividends_growth(dividends_df: pd.core.series.Series, number_of_years: int)-> dict:
+def dividends_growth(dividends_df: pd.core.series.Series, number_of_years: int, ticker : str)-> dict:
     """
     This function calculate the average exponential increments of the dividend
     and check wheter it is monotonically increasing and if it persistent with
@@ -78,21 +89,27 @@ def dividends_growth(dividends_df: pd.core.series.Series, number_of_years: int)-
 
     # fiting to exponential model
     divs_values_log = np.log(divs_values)
-    linreg_result = cp.stats.linregress(t_years, divs_values_log)
-    exp_mean_yearly_growth = np.exp(linreg_result.slope)-1
+    exp_mean_yearly_growth = math.nan
+    is_monotonic = math.nan
+    is_persistent = math.nan
+    try:
+        linreg_result = cp.stats.linregress(t_years, divs_values_log)
+        exp_mean_yearly_growth = np.exp(linreg_result.slope)-1
+        # checking if dividends are monotonically increasing
+        divs_shift = np.roll(divs_values, 1)
+        divs_shift[0] = divs_shift[1]
+        monotonic_test = divs_values - divs_shift >=0
+        is_monotonic = monotonic_test.all()
 
-    # checking if dividends are monotonically increasing
-    divs_shift = np.roll(divs_values, 1)
-    divs_shift[0] = divs_shift[1]
-    monotonic_test = divs_values - divs_shift >=0
-    is_monotonic = monotonic_test.all()
-
-    # checking if period between dividends exceeded 100 days
-    t_days = t_years*DAYS_PER_YEAR
-    t_days_shift = np.roll(t_days, 1)
-    t_days_shift[0] = t_days_shift[1]
-    persistant_test = t_days - t_days_shift < 100
-    is_persistent= persistant_test.all()
+        # checking if period between dividends exceeded 100 days
+        t_days = t_years*DAYS_PER_YEAR
+        t_days_shift = np.roll(t_days, 1)
+        t_days_shift[0] = t_days_shift[1]
+        persistant_test = t_days - t_days_shift < 100
+        is_persistent= persistant_test.all()
+    except Exception as e:
+        print("failed calculating dividends_growth in ticker " + ticker )
+        print(e)
 
     output_dict = {'exp_mean_yearly_growth': exp_mean_yearly_growth,
                    'is_monotonic': is_monotonic,
