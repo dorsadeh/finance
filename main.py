@@ -18,7 +18,7 @@ def get_data(metrics: list, tickers: list, years_dividends_growth: float):
     failed_list = []
     
     for cnt,ticker in enumerate(tickers):
-        print("downloading ticker " + str(cnt) + "/" + str(len(tickers)))
+        print("downloading ticker " + str(cnt+1) + "/" + str(len(tickers)))
         try:
             fetcher.download_ticker_data(ticker)
         except Exception as e:
@@ -29,7 +29,7 @@ def get_data(metrics: list, tickers: list, years_dividends_growth: float):
 
     tickers_data = []
     for cnt, ticker in enumerate(tickers):
-        print("getting data for " + ticker + "  " + str(cnt) + "/" + str(len(tickers)))
+        print("getting data for " + ticker + "  " + str(cnt+1) + "/" + str(len(tickers)))
         ticker_data = fetcher.get_ticker_info(ticker, metrics)
         divs = fetcher.get_ticker_dividends_history(ticker)
         divs_growth = dividends_growth(divs, years_dividends_growth, ticker)
