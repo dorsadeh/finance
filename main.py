@@ -10,6 +10,7 @@ import numpy as np
 import scipy as cp
 import pre_run
 import data_fetcher
+import analyzer
 
 # %%
 def get_data(metrics: list, tickers: list, years_dividends_growth: float):
@@ -31,9 +32,9 @@ def get_data(metrics: list, tickers: list, years_dividends_growth: float):
     for cnt, ticker in enumerate(tickers):
         print("getting data for " + ticker + "  " + str(cnt+1) + "/" + str(len(tickers)))
         ticker_data = fetcher.get_ticker_info(ticker, metrics)
-        divs = fetcher.get_ticker_dividends_history(ticker)
-        divs_growth = dividends_growth(divs, years_dividends_growth, ticker)
-        ticker_data.update(divs_growth)
+        dividends_df = fetcher.get_ticker_dividends_history(ticker)
+        div_analysis = analyzer.Analyzer(dividends_df, years_dividends_growth)
+        ticker_data.update(div_analysis.get_data())
         tickers_data.append(ticker_data)
 
     # Convert the list of dictionaries to a Pandas DataFrame
