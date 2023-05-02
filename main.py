@@ -71,51 +71,6 @@ def process_data():
     print(df4.to_string())
     df4.to_csv("filtered_data.csv")
 
-def dividends_growth(dividends_df: pd.core.series.Series, number_of_years: int, ticker : str)-> dict:
-    """
-    This function calculate the average exponential increments of the dividend
-    and check wheter it is monotonically increasing and if it persistent with
-    maximal time between dividends of 100 days
-    """
-    # finding the events during the last p years
-    DAYS_PER_YEAR = 365
-    t_abs_all = dividends_df["Date"].values
-    t_ns_all = np.datetime64('today') - t_abs_all
-    t_days_all = t_ns_all.astype('timedelta64[D]')
-    t_years = -t_days_all.astype('float64')/DAYS_PER_YEAR
-    last_events_indices = t_years>-number_of_years
-    t_years = t_years[last_events_indices]
-    divs_values = dividends_df["Dividends"].values[last_events_indices]
-
-    # fiting to exponential model
-    divs_values_log = np.log(divs_values)
-    exp_mean_yearly_growth = math.nan
-    is_monotonic = math.nan
-    is_persistent = math.nan
-    try:
-        linreg_result = cp.stats.linregress(t_years, divs_values_log)
-        exp_mean_yearly_growth = np.exp(linreg_result.slope)-1
-        # checking if dividends are monotonically increasing
-        divs_shift = np.roll(divs_values, 1)
-        divs_shift[0] = divs_shift[1]
-        monotonic_test = divs_values - divs_shift >=0
-        is_monotonic = monotonic_test.all()
-
-        # checking if period between dividends exceeded 100 days
-        t_days = t_years*DAYS_PER_YEAR
-        t_days_shift = np.roll(t_days, 1)
-        t_days_shift[0] = t_days_shift[1]
-        persistant_test = t_days - t_days_shift < 100
-        is_persistent= persistant_test.all()
-    except Exception as e:
-        print("failed calculating dividends_growth in ticker " + ticker )
-        print(e)
-
-    output_dict = {'exp_mean_yearly_growth': exp_mean_yearly_growth,
-                   'is_monotonic': is_monotonic,
-                   'is_persistent': is_persistent}
-    return output_dict
-
 
 def import_ticker_list() -> list:
     with open("./inputs/tickers.json") as ticker_file:
