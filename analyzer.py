@@ -21,7 +21,7 @@ class Analyzer():
         self.divs_values = dividends_df["Dividends"].values
         
         self._exp_mean_yearly_growth = math.nan
-        self._mean_time_between_dividends = math.nan
+        self._mean_time_between_events = math.nan
         self._growth_streak = math.nan
         self._always_monotonic = False
         self._persistency = []
@@ -32,13 +32,12 @@ class Analyzer():
             self.cal_monotonicity()
             self.cal_persistency()
     
-    def get_data(self) -> dict:
+    def get_compact_data(self) -> dict:
         return {
             "exp_mean_yearly_growth": self._exp_mean_yearly_growth,
-            "mean_time_between_dividends": self._mean_time_between_dividends,
+            "mean_time_between_dividends": self._mean_time_between_events,
             "growth_streak": self._growth_streak,
             "always_monotonic": self._always_monotonic,
-            "persistency": self._persistency,
             "always_persistent": self._always_persistent
         }
 
@@ -48,7 +47,7 @@ class Analyzer():
     
     @property
     def mean_time_between_dividends(self) -> float:
-        return self._mean_time_between_dividends
+        return self._mean_time_between_events
     
     @property
     def growth_streak(self) -> float:
@@ -87,17 +86,20 @@ class Analyzer():
         # Calculate growth streak
         drops = np.nonzero(~monotonic_test)[0]
         if drops.size == 0:
-            self.growth_streak = self.divs_values.size
+            self._growth_streak = self.divs_values.size
         else:
             last_drop = drops[-1]
-            self.growth_streak = self.divs_values.size - last_drop
+            self._growth_streak = self.divs_values.size - last_drop
 
     def cal_persistency(self):
-        # finding where and if the time between two events exceeded twice the **average** of the time between two events
+        """
+        This function finds where and if the time between two events exceeded twice the **average** of the time between two events, and determine always_persistent value
+        """
         t = self.t_days
         t_shift = np.roll(t, 1)
         t_shift[0] = t_shift[1]
-        dts = t - t_shift
-        self._mean_time_between_dividends = np.average(dts[1:])
-        self.persistency = dts < self._mean_time_between_dividends*2
-        self.always_persistent = self.persistency.all()
+        dts = t_shift - t
+        dts = dts.astype(float)
+        self._mean_time_between_events = np.average(dts[1:])
+        self._persistency = dts < self._mean_time_between_events*2
+        self._always_persistent = self.persistency.all()

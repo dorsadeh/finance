@@ -34,7 +34,7 @@ def get_data(metrics: list, tickers: list, years_dividends_growth: float):
         ticker_data = fetcher.get_ticker_info(ticker, metrics)
         dividends_df = fetcher.get_ticker_dividends_history(ticker)
         div_analysis = analyzer.Analyzer(dividends_df, years_dividends_growth)
-        ticker_data.update(div_analysis.get_data())
+        ticker_data.update(div_analysis.get_compact_data())
         tickers_data.append(ticker_data)
 
     # Convert the list of dictionaries to a Pandas DataFrame
