@@ -101,3 +101,13 @@ class DataFetcher:
         data['price_at_start'] = start_price
         data['growth'] = (end_price - start_price) / start_price * 100
         return data
+    
+    def get_ticker_dividends_history(self, ticker:str) -> pd.DataFrame:
+        dir_path = os.path.join(self.downloaded_data_dir_path, ticker)
+        if not os.path.exists(dir_path):
+            return {}
+       
+        paths = self.__get_paths(ticker)
+        data = pd.read_csv(paths["dividends_path"], parse_dates=['Date'])
+        data['Date'] = pd.to_datetime(data['Date'], utc=True)
+        return data
