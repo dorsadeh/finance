@@ -6,108 +6,78 @@ import scipy as cp
 DAYS_PER_YEAR = 365
 
 class Analyzer():
-    #TODO: Doc this class
-    def __init__(self, dividends_df: pd.core.series.Series, DGR_years: float) -> None:
+    """
+    This class calculates and stores the dividends_by_year DataFram, the DGR for the given number of years (dgr_years)
+    """
+    def __init__(self, dividends_df: pd.core.series.Series, dgr_years: float) -> None:
         self.dividends_df = dividends_df
-        self.DGR_years = DGR_years
+        self.dgr_years = dgr_years
+        
         self._dividends_by_year = pd.DataFrame({"Year": [], "Dividends": [], "Count": []})
-        self.number_of_events = dividends_df.size
-        self.events_t = dividends_df["Date"].values
-        t_ns = np.datetime64('today') - self.events_t
-        self.t_days = t_ns.astype('timedelta64[D]')
-        self.t_years = -self.t_days.astype('float64')/DAYS_PER_YEAR
-        self.divs_values = dividends_df["Dividends"].values
-        
-        
-        self._DGR = math.nan
-        self._mean_time_between_events = math.nan
+        self._dgr = math.nan
         self._growth_streak = math.nan
-        self._always_monotonic = False
-        self._persistency = []
-        self._always_persistent = False
         
-        if self.number_of_events > 2:
+        if self.dividends_df.size > 2:
             self.cal_yearly_dividends()
-            self.cal_DGR()
-            self.cal_monotonicity()
-            self.cal_persistency()
+            self.cal_dgr()
+            self.cal_growth_streak()
     
     def get_compact_data(self) -> dict:
         return {
-            "DGR": self._DGR,
-            "mean_time_between_dividends": self._mean_time_between_events,
+            "DGR": self._dgr,
             "growth_streak": self._growth_streak,
-            "always_monotonic": self._always_monotonic,
-            "always_persistent": self._always_persistent
         }
 
     @property
-    def DGR(self) -> float:
-        return self._DGR
+    def dividends_by_year(self) -> pd.DataFrame:
+        return self._dividends_by_year
     
     @property
-    def mean_time_between_dividends(self) -> float:
-        return self._mean_time_between_events
+    def dgr(self) -> float:
+        return self._dgr
     
     @property
     def growth_streak(self) -> float:
         return self._growth_streak
     
-    @property
-    def always_monotonic(self) -> bool:
-        return self._always_monotonic
-    
-    @property
-    def persistency(self) -> np.ndarray:
-        return self._persistency
-    
-    @property
-    def always_persistent(self) -> bool:
-        return self._always_persistent
 
     def cal_yearly_dividends(self):
+        """
+        This function calculated the dividends_by_year DataFrame, which shows how many dividends were given in each year since the company started to share dividends
+        """
         years = self.dividends_df["Date"].values.astype("datetime64[Y]").astype(int)+1970
         firt_year = np.min(years)
         last_year = np.datetime64('now').astype("datetime64[Y]").astype(int)+1970
         divs = self.dividends_df["Dividends"].values
-        for year in range(firt_year, last_year):
+        for year in range(firt_year, last_year+1):
             inds = years == year
             yearly_div = np.sum(divs[inds])
             count = inds.sum()
             self._dividends_by_year.loc[len(self._dividends_by_year.index)] = [year, yearly_div, count]    
 
-    def cal_DGR(self):
+    def cal_dgr(self):
         """
         This function fits the data from the last number_of_years to an exponential model and calculates dividend growth rate (DGR)
+        To avoid negative biases the function discluding the current year
         """
-        divs = self._dividends_by_year["Dividends"].values[-self.DGR_years:]
+        divs = self._dividends_by_year["Dividends"].values[-self.dgr_years-1:-1]
         divs_log = np.log(divs)
-        linreg_result = cp.stats.linregress(range(self.DGR_years), divs_log)
-        self._DGR = (np.exp(linreg_result.slope)-1)
+        linreg_result = cp.stats.linregress(range(self.dgr_years), divs_log)
+        self._dgr = (np.exp(linreg_result.slope)-1)
 
-    def cal_monotonicity(self):
-        # checking if dividends are monotonically increasing
-        divs_shift = np.roll(self.divs_values, 1)
+    def cal_growth_streak(self):
+        """
+        This function calculates the growth streak
+        """
+        divs = self._dividends_by_year["Dividends"].values[:-1]
+        divs_shift = np.roll(divs, 1)
         divs_shift[0] = divs_shift[1]
-        monotonic_test = self.divs_values - divs_shift >=0
+        monotonic_test = divs - divs_shift >0
 
         # Calculate growth streak
         drops = np.nonzero(~monotonic_test)[0]
         if drops.size == 0:
-            self._growth_streak = self.divs_values.size
+            self._growth_streak = divs.size
         else:
             last_drop = drops[-1]
-            self._growth_streak = self.divs_values.size - last_drop
-
-    def cal_persistency(self):
-        """
-        This function finds where and if the time between two events exceeded twice the **average** of the time between two events, and determine always_persistent value
-        """
-        t = self.t_days
-        t_shift = np.roll(t, 1)
-        t_shift[0] = t_shift[1]
-        dts = t_shift - t
-        dts = dts.astype(float)
-        self._mean_time_between_events = np.average(dts[1:])
-        self._persistency = dts < self._mean_time_between_events*2
-        self._always_persistent = self.persistency.all()
+            self._growth_streak = divs.size - last_drop
