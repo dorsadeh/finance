@@ -10,7 +10,7 @@ class Analyzer():
     def __init__(self, dividends_df: pd.core.series.Series, DGR_years: float) -> None:
         self.dividends_df = dividends_df
         self.DGR_years = DGR_years
-        self._dividends_by_year = pd.DataFrame({"Year": [], "Dividends": []})
+        self._dividends_by_year = pd.DataFrame({"Year": [], "Dividends": [], "Count": []})
         self.number_of_events = dividends_df.size
         self.events_t = dividends_df["Date"].values
         t_ns = np.datetime64('today') - self.events_t
@@ -71,8 +71,10 @@ class Analyzer():
         last_year = np.datetime64('now').astype("datetime64[Y]").astype(int)+1970
         divs = self.dividends_df["Dividends"].values
         for year in range(firt_year, last_year):
-            yearly_div = np.sum(divs[years == year])
-            self._dividends_by_year.loc[len(self._dividends_by_year.index)] = [year, yearly_div]    
+            inds = years == year
+            yearly_div = np.sum(divs[inds])
+            count = inds.sum()
+            self._dividends_by_year.loc[len(self._dividends_by_year.index)] = [year, yearly_div, count]    
 
     def cal_DGR(self):
         """
