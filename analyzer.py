@@ -78,11 +78,9 @@ class Analyzer():
         """
         This function fits the data from the last number_of_years to an exponential model and calculates dividend growth rate (DGR)
         """
-        last_events_indices = self.t_years > -self.DGR_years
-        t_years_last = self.t_years[last_events_indices]
-        divs_values_last = self.divs_values[last_events_indices]
-        divs_values_log = np.log(divs_values_last)
-        linreg_result = cp.stats.linregress(t_years_last, divs_values_log)
+        divs = self._dividends_by_year["Dividends"].values[-self.DGR_years:]
+        divs_log = np.log(divs)
+        linreg_result = cp.stats.linregress(range(self.DGR_years), divs_log)
         self._DGR = (np.exp(linreg_result.slope)-1)
 
     def cal_monotonicity(self):
