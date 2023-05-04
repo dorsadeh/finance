@@ -8,13 +8,16 @@ DAYS_PER_YEAR = 365
 class Analyzer():
     #TODO: Doc this class
     def __init__(self, dividends_df: pd.core.series.Series, DGR_years: float) -> None:
+        self.dividends_df = dividends_df
         self.DGR_years = DGR_years
+        self._dividends_by_year = pd.DataFrame({"Year": [], "Dividends": []})
         self.number_of_events = dividends_df.size
-        self.t_abs = dividends_df["Date"].values
-        t_ns = np.datetime64('today') - self.t_abs
+        self.events_t = dividends_df["Date"].values
+        t_ns = np.datetime64('today') - self.events_t
         self.t_days = t_ns.astype('timedelta64[D]')
         self.t_years = -self.t_days.astype('float64')/DAYS_PER_YEAR
         self.divs_values = dividends_df["Dividends"].values
+        
         
         self._DGR = math.nan
         self._mean_time_between_events = math.nan
@@ -24,6 +27,7 @@ class Analyzer():
         self._always_persistent = False
         
         if self.number_of_events > 2:
+            self.cal_yearly_dividends()
             self.cal_DGR()
             self.cal_monotonicity()
             self.cal_persistency()
@@ -61,6 +65,14 @@ class Analyzer():
     def always_persistent(self) -> bool:
         return self._always_persistent
 
+    def cal_yearly_dividends(self):
+        years = self.dividends_df["Date"].values.astype("datetime64[Y]").astype(int)+1970
+        firt_year = np.min(years)
+        last_year = np.datetime64('now').astype("datetime64[Y]").astype(int)+1970
+        divs = self.dividends_df["Dividends"].values
+        for year in range(firt_year, last_year):
+            yearly_div = np.sum(divs[years == year])
+            self._dividends_by_year.loc[len(self._dividends_by_year.index)] = [year, yearly_div]    
 
     def cal_DGR(self):
         """
