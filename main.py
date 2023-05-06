@@ -13,7 +13,7 @@ import data_fetcher
 import analyzer
 
 # %%
-def get_data(metrics: list, tickers: list, years_dividends_growth: float):
+def get_data(metrics: list, tickers: list):
     fetcher = data_fetcher.DataFetcher("downloaded_data")
     fetcher.init_downloads_directory()
     failed_list = []
@@ -33,7 +33,7 @@ def get_data(metrics: list, tickers: list, years_dividends_growth: float):
         print("getting data for " + ticker + "  " + str(cnt+1) + "/" + str(len(tickers)))
         ticker_data = fetcher.get_ticker_info(ticker, metrics)
         dividends_df = fetcher.get_ticker_dividends_history(ticker)
-        div_analysis = analyzer.Analyzer(dividends_df, years_dividends_growth)
+        div_analysis = analyzer.Analyzer(dividends_df)
         ticker_data.update(div_analysis.get_compact_data())
         tickers_data.append(ticker_data)
 
@@ -103,6 +103,6 @@ if __name__ == '__main__':
         print(e)
         sys.exit()
     tickers = import_ticker_list()
-    get_data(metrics, tickers, settings.years_dividends_growth)
+    get_data(metrics, tickers)
     process_data()
 # %%
