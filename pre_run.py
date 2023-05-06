@@ -20,6 +20,16 @@ class Settings():
         self._debt_return_time_max_val_by_income = float()
         self._years_dividends_growth = float()
 
+        self.default_settings = {
+                                "included_ticker_lists": ["dividend_aristocrats", "dividaat_list", "challengers", "contenders", "champions"],
+                                "start_date": datetime.datetime.strftime(datetime.datetime.now() - relativedelta(years=10), defs.date_format),
+                                "end_date": datetime.datetime.strftime(datetime.date.today(), defs.date_format),
+                                "dividend_yield_min_val": 0.020,
+                                "payout_ratio_max_val": 0.7,
+                                "debt_return_time_max_val_by_ebitda": 5.0,
+                                "debt_return_time_max_val_by_income": 5.0,
+                                "years_dividends_growth": 5,
+                                }
         self.load_user_settings()
 
     @property
@@ -59,7 +69,7 @@ class Settings():
         print("")
         if not os.path.isfile(self.user_file_name):
             with open(self.user_file_name, 'w') as user_settings_file:
-                json.dump(default_settings, user_settings_file, indent=4)
+                json.dump(self.default_settings, user_settings_file, indent=4)
         
         # loading from file
         with open(self.user_file_name, 'r') as user_settings_file:
@@ -67,7 +77,7 @@ class Settings():
         
         # fields validation
         missing_fields = []
-        for field in list(default_settings.keys()):
+        for field in list(self.default_settings.keys()):
             if field not in list(user_settings.keys()):
                 missing_fields.append(field)
 
@@ -83,14 +93,3 @@ class Settings():
         self._debt_return_time_max_val_by_ebitda = user_settings['debt_return_time_max_val_by_ebitda']
         self._debt_return_time_max_val_by_income = user_settings['debt_return_time_max_val_by_income']
         self._years_dividends_growth = user_settings['years_dividends_growth']
-
-default_settings = {
-    "included_ticker_lists": ["dividend_aristocrats", "dividaat_list", "challengers", "contenders", "champions"],
-    "start_date": datetime.datetime.strftime(datetime.datetime.now() - relativedelta(years=10), defs.date_format),
-    "end_date": datetime.datetime.strftime(datetime.date.today(), defs.date_format),
-    "dividend_yield_min_val": 0.020,
-    "payout_ratio_max_val": 0.7,
-    "debt_return_time_max_val_by_ebitda": 5.0,
-    "debt_return_time_max_val_by_income": 5.0,
-    "years_dividends_growth": 5,
-}
