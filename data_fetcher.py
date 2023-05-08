@@ -4,7 +4,9 @@ import json
 import pandas as pd
 import yfinance as yf
 from datetime import datetime
+import definitions
 
+defs = definitions.Definitions()
 class DataFetcher:
     """
     This module downloads data from yahoo finance and saves it locally in a downloads directory
@@ -65,7 +67,7 @@ class DataFetcher:
         
         # save dividends series
         dividends = ticker_info.dividends
-        dividends.to_csv(paths["dividends_path"], date_format="%Y-%m-%d")
+        dividends.to_csv(paths["dividends_path"], date_format=defs.date_format)
 
         # save history series
         history = ticker_info.history(start=self.start_date, end=datetime.now())
