@@ -1,6 +1,7 @@
 import os
 import shutil
 import json
+import time
 import pandas as pd
 import yfinance as yf
 from datetime import datetime
@@ -43,40 +44,70 @@ class DataFetcher:
             "stock_history_path" : stock_history_path
         }
    
-    def download_ticker_data(self, ticker:str):
+    def _is_valid_cache(self, ticker: str) -> bool:
+        """Check if cached data for a ticker is valid (not empty/garbage)."""
+        paths = self.__get_paths(ticker)
+        if not os.path.exists(paths["info_json_path"]):
+            return False
+        try:
+            with open(paths["info_json_path"], "r") as f:
+                info = json.load(f)
+            # A valid download has basic fields; a delisted/failed one has ~1 key
+            return 'shortName' in info or 'longName' in info
+        except (json.JSONDecodeError, OSError):
+            return False
+
+    def download_ticker_data(self, ticker: str, max_retries: int = 3):
         """
-        for each ticker - checks if data is already available for a ticker, and if not downloads
-        1. a separate directory is created
-        2. the following data is saved: info, dividends price history, stock history
+        For each ticker - checks if valid cached data exists, and if not downloads.
+        Retries up to max_retries times on transient failures.
+        Invalid/incomplete cached data is cleaned up and re-downloaded.
         """
         paths = self.__get_paths(ticker)
         dir_path = paths["dir_path"]
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-            print("Directory created:", dir_path)
-        else:
-            print("Data exists for ", ticker)
-            return
 
-        print("Downloading data for " + dir_path + "...")
-        try:
-            ticker_info = yf.Ticker(ticker)
+        if os.path.exists(dir_path):
+            if self._is_valid_cache(ticker):
+                print("Data exists for ", ticker)
+                return
+            else:
+                print(f"Invalid cache for {ticker}, re-downloading...")
+                shutil.rmtree(dir_path, ignore_errors=True)
 
-            # save info json
-            with open(paths["info_json_path"], 'w') as f:
-                json.dump(ticker_info.info, f, indent=4)
+        for attempt in range(1, max_retries + 1):
+            os.makedirs(dir_path, exist_ok=True)
+            print(f"Downloading data for {ticker} (attempt {attempt}/{max_retries})...")
+            try:
+                ticker_info = yf.Ticker(ticker)
 
-            # save dividends series
-            dividends = ticker_info.dividends
-            dividends.to_csv(paths["dividends_path"], date_format=defs.date_format)
+                # save info json
+                with open(paths["info_json_path"], 'w') as f:
+                    json.dump(ticker_info.info, f, indent=4)
 
-            # save history series
-            history = ticker_info.history(start=self.start_date, end=datetime.now())
-            history.to_csv(paths["stock_history_path"])
-        except Exception:
-            # Remove the directory so the ticker can be retried on next run
-            shutil.rmtree(dir_path, ignore_errors=True)
-            raise
+                # validate that we got real data
+                if not self._is_valid_cache(ticker):
+                    print(f"  {ticker}: no valid data returned (possibly delisted)")
+                    shutil.rmtree(dir_path, ignore_errors=True)
+                    return
+
+                # save dividends series
+                dividends = ticker_info.dividends
+                dividends.to_csv(paths["dividends_path"], date_format=defs.date_format)
+
+                # save history series
+                history = ticker_info.history(start=self.start_date, end=datetime.now())
+                history.to_csv(paths["stock_history_path"])
+                return  # success
+
+            except Exception as e:
+                shutil.rmtree(dir_path, ignore_errors=True)
+                if attempt < max_retries:
+                    wait = attempt * 2
+                    print(f"  {ticker}: attempt {attempt} failed ({e}), retrying in {wait}s...")
+                    time.sleep(wait)
+                else:
+                    print(f"  {ticker}: all {max_retries} attempts failed")
+                    raise
 
     
     def get_ticker_info(self, ticker:str, metrics: list) -> dict:
