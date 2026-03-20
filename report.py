@@ -187,6 +187,7 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
     df_filtered = pd.read_csv(filtered_csv_path)
 
     yield_min = settings.dividend_yield_min_val
+    yield_max = settings.dividend_yield_max_val
     payout_max = settings.payout_ratio_max_val
     debt_ebitda_max = settings.debt_return_time_max_val_by_ebitda
     min_streak = int(settings.years_dividends_growth)
@@ -379,7 +380,7 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
 </div>
 
 <div class="thresholds">
-    Filters: Div Yield &gt; {yield_min:.1%} &nbsp;|&nbsp; Payout Ratio &lt; {payout_max:.0%} &nbsp;|&nbsp; Debt/EBITDA &lt; {debt_ebitda_max:.0f} years &nbsp;|&nbsp; Growth Streak &ge; {min_streak} years
+    Filters: {yield_min:.1%} &lt; Div Yield &lt; {yield_max:.0%} &nbsp;|&nbsp; Payout Ratio &lt; {payout_max:.0%} &nbsp;|&nbsp; Debt/EBITDA &lt; {debt_ebitda_max:.0f} years &nbsp;|&nbsp; Growth Streak &ge; {min_streak} years
 </div>
 
 <div class="legend">

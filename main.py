@@ -57,8 +57,10 @@ def process_data():
     df1 = df0.sort_values(by=['dividendYield'], ascending=False).reset_index(drop=True)
     print(df1.to_string())
 
+    DIVIDEND_YIELD_MAX_VAL = settings.dividend_yield_max_val
+
     print("\n======= filter dividend yield ======")
-    df2 = df1[df1['dividendYield'] > DIVIDEND_YIELD_MIN_VAL]
+    df2 = df1[(df1['dividendYield'] > DIVIDEND_YIELD_MIN_VAL) & (df1['dividendYield'] < DIVIDEND_YIELD_MAX_VAL)]
     print(df2.to_string())
 
     print("\n======= filter payout ratio ======")

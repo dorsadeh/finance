@@ -15,6 +15,7 @@ class Settings():
         self._start_date = datetime.date
         self._end_date = datetime.date
         self._dividend_yield_min_val = float()
+        self._dividend_yield_max_val = float()
         self._payout_ratio_max_val = float()
         self._debt_return_time_max_val_by_ebitda = float()
         self._debt_return_time_max_val_by_income = float()
@@ -25,6 +26,7 @@ class Settings():
                                 "start_date": datetime.datetime.strftime(datetime.datetime.now() - relativedelta(years=10), defs.date_format),
                                 "end_date": datetime.datetime.strftime(datetime.date.today(), defs.date_format),
                                 "dividend_yield_min_val": 0.020,
+                                "dividend_yield_max_val": 0.10,
                                 "payout_ratio_max_val": 0.7,
                                 "debt_return_time_max_val_by_ebitda": 5.0,
                                 "debt_return_time_max_val_by_income": 5.0,
@@ -47,7 +49,11 @@ class Settings():
     @property
     def dividend_yield_min_val(self) -> float:
         return self._dividend_yield_min_val
-    
+
+    @property
+    def dividend_yield_max_val(self) -> float:
+        return self._dividend_yield_max_val
+
     @property
     def payout_ratio_max_val(self) -> float:
         return self._payout_ratio_max_val
@@ -89,6 +95,7 @@ class Settings():
         self._start_date = datetime.datetime.strptime(user_settings['start_date'], defs.date_format).date()
         self._end_date = datetime.datetime.strptime(user_settings['end_date'], defs.date_format).date()
         self._dividend_yield_min_val = user_settings['dividend_yield_min_val']
+        self._dividend_yield_max_val = user_settings['dividend_yield_max_val']
         self._payout_ratio_max_val = user_settings['payout_ratio_max_val']
         self._debt_return_time_max_val_by_ebitda = user_settings['debt_return_time_max_val_by_ebitda']
         self._debt_return_time_max_val_by_income = user_settings['debt_return_time_max_val_by_income']
