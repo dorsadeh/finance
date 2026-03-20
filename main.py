@@ -11,6 +11,7 @@ import scipy as cp
 import pre_run
 import data_fetcher
 import analyzer
+import report
 
 # %%
 def get_data(metrics: list, tickers: list):
@@ -105,4 +106,5 @@ if __name__ == '__main__':
     tickers = import_ticker_list()
     get_data(metrics, tickers)
     process_data()
+    report.generate_html_report(output_file_name, "filtered_data.csv", settings)
 # %%
