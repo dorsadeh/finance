@@ -7,8 +7,8 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
     Generates a styled HTML report from the raw and filtered CSV data.
     Opens the report in the default browser.
     """
-    df_raw = pd.read_csv(raw_csv_path, index_col=0)
-    df_filtered = pd.read_csv(filtered_csv_path, index_col=0)
+    df_raw = pd.read_csv(raw_csv_path)
+    df_filtered = pd.read_csv(filtered_csv_path)
 
     # Thresholds from settings
     yield_min = settings.dividend_yield_min_val
@@ -22,8 +22,10 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
         if 'debtReturnTimeByIncome' not in df.columns:
             df['debtReturnTimeByIncome'] = (df['totalDebt'] - df['totalCash']) / df['netIncomeToCommon']
 
-    # Columns to display and their friendly names
+    # Columns to display and their friendly names (ordered)
     display_cols = {
+        'Ticker': 'Ticker',
+        'shortName': 'Name',
         'dividendYield': 'Div Yield',
         'payoutRatio': 'Payout Ratio',
         'trailingPE': 'P/E (TTM)',
@@ -112,10 +114,17 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
         """Build a styled HTML table from a DataFrame."""
         available = [c for c in display_cols if c in df.columns]
         df_display = df[available].copy()
-        df_display = df_display.rename(columns=display_cols)
+
+        # Set Ticker as the index so it appears as the row label
+        if 'Ticker' in df_display.columns:
+            df_display = df_display.set_index('Ticker')
+
+        # Rename remaining columns to friendly names
+        rename_map = {k: v for k, v in display_cols.items() if k != 'Ticker'}
+        df_display = df_display.rename(columns=rename_map)
 
         # Format percentages
-        reverse_map = {v: k for k, v in display_cols.items()}
+        reverse_map = {v: k for k, v in display_cols.items() if k != 'Ticker'}
         fmt_pct = ['dividendYield', 'payoutRatio', 'DGR_3', 'DGR_5', 'DGR_10']
 
         def apply_styles(styler):
@@ -176,6 +185,9 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
             {'selector': 'th:first-child, td:first-child', 'props': [
                 ('text-align', 'left'),
                 ('font-weight', 'bold'),
+            ]},
+            {'selector': 'th:nth-child(2), td:nth-child(2)', 'props': [
+                ('text-align', 'left'),
             ]},
         ])
         return styler.to_html()

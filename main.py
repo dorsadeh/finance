@@ -39,13 +39,11 @@ def get_data(metrics: list, tickers: list):
         tickers_data.append(ticker_data)
 
     # Convert the list of dictionaries to a Pandas DataFrame
-    df = pd.DataFrame(tickers_data, index=tickers)
-
-    # add dividend exponential growth
-    
+    df = pd.DataFrame(tickers_data)
+    df.insert(0, 'Ticker', tickers)
 
     # Save the data to a CSV file
-    df.to_csv(output_file_name)
+    df.to_csv(output_file_name, index=False)
 
 def process_data():
     DIVIDEND_YIELD_MIN_VAL = settings.dividend_yield_min_val
@@ -55,7 +53,7 @@ def process_data():
 
     print("======= all data ======")
     df0 = pd.read_csv(output_file_name)
-    df1 = df0.sort_values(by=['dividendYield'], ascending=False)
+    df1 = df0.sort_values(by=['dividendYield'], ascending=False).reset_index(drop=True)
     print(df1.to_string())
 
     print("\n======= filter dividend yield ======")
@@ -71,7 +69,7 @@ def process_data():
     df3['debtReturnTimeByIncome'] = (df3['totalDebt'] - df3['totalCash']) / df3['netIncomeToCommon']
     df4 = df3[(df3['debtReturnTimeByEbitda'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA)  | (df3['debtReturnTimeByEbitda'].isna())]
     print(df4.to_string())
-    df4.to_csv("filtered_data.csv")
+    df4.to_csv("filtered_data.csv", index=False)
 
 
 def import_ticker_list() -> list:
@@ -92,7 +90,7 @@ def import_ticker_list() -> list:
 
 
 # Define a list of the metrics we want to retrieve
-metrics = ['dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
+metrics = ['shortName', 'dividendYield', 'payoutRatio', 'trailingPE', 'forwardPE', 'ebitda', 'totalDebt',
            'totalCash', 'netIncomeToCommon']
 
 output_file_name = 'ticker_data.csv'
