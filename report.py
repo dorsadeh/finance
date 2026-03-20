@@ -1,6 +1,182 @@
+import math
 import pandas as pd
+import numpy as np
 import webbrowser
 import os
+from html import escape
+
+
+def _calc_score(row):
+    """
+    Calculate an overall score (0-100) based on weighted metrics.
+    Weights reflect the Hasolidit article priorities:
+    - Dividend growth (DGR + streak) is the most important signal
+    - Payout ratio and debt measure sustainability
+    - Yield and valuation round out the picture
+    """
+    score = 0.0
+    total_weight = 0.0
+
+    components = [
+        # (column, weight, scoring_func)
+        ('dividendYield', 15, lambda v: _linear_score(v, 0.01, 0.06)),
+        ('payoutRatio', 15, lambda v: _linear_score(1 - v, 0.3, 1.0)),  # lower is better
+        ('DGR_5', 20, lambda v: _linear_score(v, -0.02, 0.15)),
+        ('growth_streak', 20, lambda v: _linear_score(v, 0, 25)),
+        ('debtReturnTimeByEbitda', 15, lambda v: _linear_score(5 - v, 0, 5)),  # lower is better
+        ('forwardPE', 15, lambda v: _linear_score(30 - v, 0, 25)),  # lower is better
+    ]
+
+    for col, weight, func in components:
+        val = row.get(col)
+        if pd.isna(val) or val == 'N/A':
+            continue
+        try:
+            v = float(val)
+        except (ValueError, TypeError):
+            continue
+        total_weight += weight
+        score += weight * func(v)
+
+    if total_weight == 0:
+        return math.nan
+    return round(score / total_weight * 100, 1)
+
+
+def _linear_score(value, low, high):
+    """Map value to 0-1 linearly between low and high, clamped."""
+    if high == low:
+        return 0.5
+    return max(0.0, min(1.0, (value - low) / (high - low)))
+
+
+# Column definitions: (internal_key, display_name, tooltip, format_func)
+COLUMNS = [
+    ('shortName', 'Name', 'Company name', 'text'),
+    ('score', 'Score', 'Overall quality score (0-100) based on yield, payout, DGR, streak, debt, and valuation', 'score'),
+    ('dividendYield', 'Div Yield', 'Annual dividend as % of stock price. Higher = more income per dollar invested', 'pct'),
+    ('payoutRatio', 'Payout Ratio', 'Fraction of earnings paid as dividends. Below 50% is strong, above 70% is risky', 'pct'),
+    ('trailingPE', 'P/E (TTM)', 'Price / Earnings (trailing 12 months). Lower = cheaper valuation', 'dec1'),
+    ('forwardPE', 'Fwd P/E', 'Price / Expected future earnings. Lower = cheaper valuation', 'dec1'),
+    ('DGR_3', 'DGR 3Y', 'Dividend Growth Rate over last 3 years (exponential fit)', 'pct'),
+    ('DGR_5', 'DGR 5Y', 'Dividend Growth Rate over last 5 years (exponential fit)', 'pct'),
+    ('DGR_10', 'DGR 10Y', 'Dividend Growth Rate over last 10 years (exponential fit)', 'pct'),
+    ('growth_streak', 'Streak', 'Consecutive years of dividend increases', 'int'),
+    ('debtReturnTimeByEbitda', 'Debt/EBITDA', 'Years to repay net debt from EBITDA. Lower = stronger balance sheet', 'dec1'),
+    ('debtReturnTimeByIncome', 'Debt/Income', 'Years to repay net debt from net income. Lower = stronger balance sheet', 'dec1'),
+    ('growth', 'Price Growth %', 'Total stock price appreciation over the analysis period', 'pct1'),
+    ('price_today', 'Price', 'Current stock price', 'usd'),
+]
+
+
+def _fmt(val, fmt_type):
+    """Format a value for display."""
+    if pd.isna(val) or val == 'N/A':
+        return 'N/A'
+    try:
+        v = float(val)
+    except (ValueError, TypeError):
+        return escape(str(val))
+    if fmt_type == 'pct':
+        return f'{v:.2%}'
+    if fmt_type == 'pct1':
+        return f'{v:.1f}%'
+    if fmt_type == 'dec1':
+        return f'{v:.1f}'
+    if fmt_type == 'int':
+        return f'{int(v)}'
+    if fmt_type == 'usd':
+        return f'${v:.2f}'
+    if fmt_type == 'score':
+        return f'{v:.0f}'
+    return escape(str(val))
+
+
+def _sort_key(val, fmt_type):
+    """Return a numeric sort key for JavaScript data attributes."""
+    if pd.isna(val) or val == 'N/A':
+        return ''
+    try:
+        return str(float(val))
+    except (ValueError, TypeError):
+        return escape(str(val)) if fmt_type == 'text' else ''
+
+
+def _cell_style(val, col, yield_min, payout_max, debt_max):
+    """Return background/text CSS for a cell."""
+    if pd.isna(val) or val == 'N/A':
+        return 'background-color:#f0f0f0;color:#999'
+    try:
+        v = float(val)
+    except (ValueError, TypeError):
+        return ''
+
+    g = 'background-color:#d4edda;color:#155724'
+    y = 'background-color:#fff3cd;color:#856404'
+    r = 'background-color:#f8d7da;color:#721c24'
+
+    if col == 'score':
+        if v >= 70: return g
+        if v >= 45: return y
+        if v >= 0: return r
+        return ''
+    if col == 'dividendYield':
+        if v >= yield_min * 1.5: return g
+        if v >= yield_min: return y
+        return r
+    if col == 'payoutRatio':
+        if v <= payout_max * 0.7: return g
+        if v <= payout_max: return y
+        return r
+    if col in ('debtReturnTimeByEbitda', 'debtReturnTimeByIncome'):
+        if v < 0: return g
+        if v <= debt_max * 0.6: return g
+        if v <= debt_max: return y
+        return r
+    if col in ('DGR_3', 'DGR_5', 'DGR_10'):
+        if v >= 0.10: return g
+        if v >= 0.03: return y
+        if v < 0: return r
+        return ''
+    if col == 'growth_streak':
+        if v >= 20: return g
+        if v >= 10: return y
+        if v < 5: return r
+        return ''
+    if col in ('trailingPE', 'forwardPE'):
+        if 0 < v <= 15: return g
+        if v <= 25: return y
+        if v > 25: return r
+    return ''
+
+
+def _build_html_table(df, yield_min, payout_max, debt_max, table_id):
+    """Build a raw HTML table with data-sort attributes and tooltips."""
+    available = [(key, name, tip, fmt) for key, name, tip, fmt in COLUMNS if key in df.columns]
+
+    rows_html = []
+    for _, row in df.iterrows():
+        ticker = escape(str(row.get('Ticker', '')))
+        cells = f'<td style="text-align:left;font-weight:bold" data-sort="{ticker}">{ticker}</td>'
+        for key, _, _, fmt in available:
+            val = row[key]
+            style = _cell_style(val, key, yield_min, payout_max, debt_max)
+            displayed = _fmt(val, fmt)
+            sort_val = _sort_key(val, fmt)
+            align = ' text-align:left;' if fmt == 'text' else ''
+            cells += f'<td style="{style}{align}" data-sort="{sort_val}">{displayed}</td>'
+        rows_html.append(f'<tr>{cells}</tr>')
+
+    # Header
+    header_cells = '<th data-col="0" title="Stock ticker symbol">Ticker</th>'
+    for i, (key, name, tip, fmt) in enumerate(available, start=1):
+        header_cells += f'<th data-col="{i}" title="{escape(tip)}">{escape(name)}</th>'
+
+    return f"""<table id="{table_id}">
+<thead><tr>{header_cells}</tr></thead>
+<tbody>{''.join(rows_html)}</tbody>
+</table>"""
+
 
 def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, output_path: str = "report.html"):
     """
@@ -10,190 +186,23 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
     df_raw = pd.read_csv(raw_csv_path)
     df_filtered = pd.read_csv(filtered_csv_path)
 
-    # Thresholds from settings
     yield_min = settings.dividend_yield_min_val
     payout_max = settings.payout_ratio_max_val
     debt_ebitda_max = settings.debt_return_time_max_val_by_ebitda
 
-    # Compute debt return time on raw data too (for the "all" table)
     for df in [df_raw, df_filtered]:
         if 'debtReturnTimeByEbitda' not in df.columns:
             df['debtReturnTimeByEbitda'] = (df['totalDebt'] - df['totalCash']) / df['ebitda']
         if 'debtReturnTimeByIncome' not in df.columns:
             df['debtReturnTimeByIncome'] = (df['totalDebt'] - df['totalCash']) / df['netIncomeToCommon']
+        df['score'] = df.apply(_calc_score, axis=1)
 
-    # Columns to display and their friendly names (ordered)
-    display_cols = {
-        'Ticker': 'Ticker',
-        'shortName': 'Name',
-        'dividendYield': 'Div Yield',
-        'payoutRatio': 'Payout Ratio',
-        'trailingPE': 'P/E (TTM)',
-        'forwardPE': 'Fwd P/E',
-        'DGR_3': 'DGR 3Y',
-        'DGR_5': 'DGR 5Y',
-        'DGR_10': 'DGR 10Y',
-        'growth_streak': 'Growth Streak',
-        'debtReturnTimeByEbitda': 'Debt/EBITDA',
-        'debtReturnTimeByIncome': 'Debt/Income',
-        'growth': 'Price Growth %',
-        'price_today': 'Price',
-    }
+    # Sort filtered by score descending
+    df_filtered = df_filtered.sort_values('score', ascending=False).reset_index(drop=True)
+    df_raw = df_raw.sort_values('score', ascending=False).reset_index(drop=True)
 
-    def _style_cell(val, col, yield_min, payout_max, debt_max):
-        """Return CSS style string for a cell based on its metric and value."""
-        if pd.isna(val) or val == 'N/A':
-            return 'background-color: #f0f0f0; color: #999'
-
-        try:
-            v = float(val)
-        except (ValueError, TypeError):
-            return ''
-
-        green = 'background-color: #d4edda; color: #155724'
-        yellow = 'background-color: #fff3cd; color: #856404'
-        red = 'background-color: #f8d7da; color: #721c24'
-
-        if col == 'dividendYield':
-            if v >= yield_min * 1.5:
-                return green
-            elif v >= yield_min:
-                return yellow
-            else:
-                return red
-
-        if col == 'payoutRatio':
-            if v <= payout_max * 0.7:
-                return green
-            elif v <= payout_max:
-                return yellow
-            else:
-                return red
-
-        if col in ('debtReturnTimeByEbitda', 'debtReturnTimeByIncome'):
-            if v < 0:
-                return green  # negative = net cash position
-            elif v <= debt_max * 0.6:
-                return green
-            elif v <= debt_max:
-                return yellow
-            else:
-                return red
-
-        if col in ('DGR_3', 'DGR_5', 'DGR_10'):
-            if v >= 0.10:
-                return green
-            elif v >= 0.03:
-                return yellow
-            elif v >= 0:
-                return ''
-            else:
-                return red
-
-        if col == 'growth_streak':
-            if v >= 20:
-                return green
-            elif v >= 10:
-                return yellow
-            elif v >= 5:
-                return ''
-            else:
-                return red
-
-        if col in ('trailingPE', 'forwardPE'):
-            if 0 < v <= 15:
-                return green
-            elif v <= 25:
-                return yellow
-            elif v > 25:
-                return red
-
-        return ''
-
-    def _build_styled_table(df, yield_min, payout_max, debt_max):
-        """Build a styled HTML table from a DataFrame."""
-        available = [c for c in display_cols if c in df.columns]
-        df_display = df[available].copy()
-
-        # Set Ticker as the index so it appears as the row label
-        if 'Ticker' in df_display.columns:
-            df_display = df_display.set_index('Ticker')
-
-        # Rename remaining columns to friendly names
-        rename_map = {k: v for k, v in display_cols.items() if k != 'Ticker'}
-        df_display = df_display.rename(columns=rename_map)
-
-        # Format percentages
-        reverse_map = {v: k for k, v in display_cols.items() if k != 'Ticker'}
-        fmt_pct = ['dividendYield', 'payoutRatio', 'DGR_3', 'DGR_5', 'DGR_10']
-
-        def apply_styles(styler):
-            for friendly_name in styler.columns:
-                orig_col = reverse_map.get(friendly_name, friendly_name)
-                styler = styler.applymap(
-                    lambda val, c=orig_col: _style_cell(val, c, yield_min, payout_max, debt_max),
-                    subset=[friendly_name]
-                )
-            return styler
-
-        def fmt_val(val, col):
-            if pd.isna(val) or val == 'N/A':
-                return 'N/A'
-            try:
-                v = float(val)
-            except (ValueError, TypeError):
-                return str(val)
-            if col in fmt_pct:
-                return f'{v:.2%}'
-            if col in ('growth',):
-                return f'{v:.1f}%'
-            if col in ('trailingPE', 'forwardPE', 'debtReturnTimeByEbitda', 'debtReturnTimeByIncome'):
-                return f'{v:.1f}'
-            if col == 'growth_streak':
-                return f'{int(v)}'
-            if col == 'price_today':
-                return f'${v:.2f}'
-            return f'{v:.2f}'
-
-        # Format values
-        for friendly_name in df_display.columns:
-            orig_col = reverse_map.get(friendly_name, friendly_name)
-            df_display[friendly_name] = df_display[friendly_name].apply(lambda val, c=orig_col: fmt_val(val, c))
-
-        styler = df_display.style.pipe(apply_styles)
-        styler = styler.set_table_styles([
-            {'selector': 'th', 'props': [
-                ('background-color', '#2c3e50'),
-                ('color', 'white'),
-                ('padding', '8px 12px'),
-                ('text-align', 'center'),
-                ('font-size', '13px'),
-                ('border-bottom', '2px solid #1a252f'),
-                ('position', 'sticky'),
-                ('top', '0'),
-                ('z-index', '1'),
-            ]},
-            {'selector': 'td', 'props': [
-                ('padding', '6px 12px'),
-                ('text-align', 'center'),
-                ('font-size', '13px'),
-                ('border-bottom', '1px solid #e0e0e0'),
-            ]},
-            {'selector': 'tr:hover td', 'props': [
-                ('background-color', '#eaf2f8 !important'),
-            ]},
-            {'selector': 'th:first-child, td:first-child', 'props': [
-                ('text-align', 'left'),
-                ('font-weight', 'bold'),
-            ]},
-            {'selector': 'th:nth-child(2), td:nth-child(2)', 'props': [
-                ('text-align', 'left'),
-            ]},
-        ])
-        return styler.to_html()
-
-    filtered_table = _build_styled_table(df_filtered, yield_min, payout_max, debt_ebitda_max)
-    all_table = _build_styled_table(df_raw, yield_min, payout_max, debt_ebitda_max)
+    filtered_table = _build_html_table(df_filtered, yield_min, payout_max, debt_ebitda_max, 'tbl-filtered')
+    all_table = _build_html_table(df_raw, yield_min, payout_max, debt_ebitda_max, 'tbl-all')
 
     n_total = len(df_raw)
     n_filtered = len(df_filtered)
@@ -266,6 +275,53 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
     }}
     .section-body.collapsed {{ display: none; }}
     table {{ width: 100%; border-collapse: collapse; }}
+    th {{
+        background-color: #2c3e50;
+        color: white;
+        padding: 8px 12px;
+        text-align: center;
+        font-size: 13px;
+        border-bottom: 2px solid #1a252f;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }}
+    th:hover {{ background-color: #3a5068; }}
+    th::after {{
+        content: '';
+        display: inline-block;
+        width: 0;
+        height: 0;
+        margin-left: 6px;
+        vertical-align: middle;
+    }}
+    th.sort-asc::after {{
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-bottom: 5px solid white;
+    }}
+    th.sort-desc::after {{
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid white;
+    }}
+    td {{
+        padding: 6px 12px;
+        text-align: center;
+        font-size: 13px;
+        border-bottom: 1px solid #e0e0e0;
+    }}
+    tr:hover td {{ background-color: #eaf2f8 !important; }}
+    th:first-child, td:first-child {{
+        text-align: left;
+        font-weight: bold;
+    }}
+    th:nth-child(2), td:nth-child(2) {{
+        text-align: left;
+    }}
     .legend {{
         display: flex;
         gap: 16px;
@@ -291,13 +347,19 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
         color: #7f8c8d;
         margin: 12px 0;
     }}
+    .score-info {{
+        text-align: center;
+        font-size: 12px;
+        color: #95a5a6;
+        margin: 4px 0 16px 0;
+    }}
 </style>
 </head>
 <body>
 
 <div class="header">
     <h1>Dividend Stock Screener</h1>
-    <p>Generated report with color-coded metrics</p>
+    <p>Generated report with color-coded metrics — click any column header to sort</p>
 </div>
 
 <div class="stats">
@@ -326,6 +388,10 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
     <div class="legend-item"><div class="legend-color" style="background:#f0f0f0"></div> No Data</div>
 </div>
 
+<div class="score-info">
+    Score weights: DGR 5Y (20%) + Growth Streak (20%) + Div Yield (15%) + Payout Ratio (15%) + Debt/EBITDA (15%) + Fwd P/E (15%)
+</div>
+
 <div class="section">
     <div class="section-header" onclick="toggle('filtered')">
         Filtered Results ({n_filtered} stocks)
@@ -349,10 +415,45 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
 <script>
 function toggle(id) {{
     var body = document.getElementById(id);
-    var toggleText = document.getElementById(id + '-toggle');
+    var txt = document.getElementById(id + '-toggle');
     body.classList.toggle('collapsed');
-    toggleText.textContent = body.classList.contains('collapsed') ? 'expand' : 'collapse';
+    txt.textContent = body.classList.contains('collapsed') ? 'expand' : 'collapse';
 }}
+
+document.querySelectorAll('th[data-col]').forEach(function(th) {{
+    th.addEventListener('click', function() {{
+        var table = th.closest('table');
+        var colIdx = parseInt(th.getAttribute('data-col'));
+        var tbody = table.querySelector('tbody');
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+
+        // Determine sort direction
+        var asc = !th.classList.contains('sort-asc');
+        table.querySelectorAll('th').forEach(function(h) {{
+            h.classList.remove('sort-asc', 'sort-desc');
+        }});
+        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+
+        rows.sort(function(a, b) {{
+            var aVal = a.children[colIdx].getAttribute('data-sort');
+            var bVal = b.children[colIdx].getAttribute('data-sort');
+            var aNum = parseFloat(aVal);
+            var bNum = parseFloat(bVal);
+
+            // Push empty values to the bottom always
+            if (aVal === '' && bVal === '') return 0;
+            if (aVal === '') return 1;
+            if (bVal === '') return -1;
+
+            if (!isNaN(aNum) && !isNaN(bNum)) {{
+                return asc ? aNum - bNum : bNum - aNum;
+            }}
+            return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }});
+
+        rows.forEach(function(row) {{ tbody.appendChild(row); }});
+    }});
+}});
 </script>
 
 </body>
