@@ -50,6 +50,7 @@ def process_data():
     PAYOUT_RATIO_MAX_VAL = settings.payout_ratio_max_val
     DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA = settings.debt_return_time_max_val_by_ebitda
     DEBT_RETURN_TIME_MAX_VAL_BY_INCOME = settings.debt_return_time_max_val_by_income
+    MIN_GROWTH_STREAK = settings.years_dividends_growth
 
     print("======= all data ======")
     df0 = pd.read_csv(output_file_name)
@@ -69,7 +70,11 @@ def process_data():
     df3['debtReturnTimeByIncome'] = (df3['totalDebt'] - df3['totalCash']) / df3['netIncomeToCommon']
     df4 = df3[(df3['debtReturnTimeByEbitda'] < DEBT_RETURN_TIME_MAX_VAL_BY_EBITDA)  | (df3['debtReturnTimeByEbitda'].isna())]
     print(df4.to_string())
-    df4.to_csv("filtered_data.csv", index=False)
+
+    print(f"\n======= filter growth streak >= {MIN_GROWTH_STREAK} years ======")
+    df5 = df4[df4['growth_streak'] >= MIN_GROWTH_STREAK]
+    print(df5.to_string())
+    df5.to_csv("filtered_data.csv", index=False)
 
 
 def import_ticker_list() -> list:

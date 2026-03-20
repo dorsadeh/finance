@@ -53,7 +53,7 @@ def _linear_score(value, low, high):
 # Column definitions: (internal_key, display_name, tooltip, format_func)
 COLUMNS = [
     ('shortName', 'Name', 'Company name', 'text'),
-    ('score', 'Score', 'Overall quality score (0-100) based on yield, payout, DGR, streak, debt, and valuation', 'score'),
+    ('score', 'Score', 'Overall quality score (0-100). Weighted: DGR 5Y 20% (0-15% range) + Growth Streak 20% (0-25yr) + Div Yield 15% (1-6%) + Payout Ratio 15% (lower is better, 0-70%) + Debt/EBITDA 15% (lower is better, 0-5yr) + Fwd P/E 15% (lower is better, 5-30). Missing data scores 0 for that component.', 'score'),
     ('dividendYield', 'Div Yield', 'Annual dividend as % of stock price. Higher = more income per dollar invested', 'pct'),
     ('payoutRatio', 'Payout Ratio', 'Fraction of earnings paid as dividends. Below 50% is strong, above 70% is risky', 'pct'),
     ('trailingPE', 'P/E (TTM)', 'Price / Earnings (trailing 12 months). Lower = cheaper valuation', 'dec1'),
@@ -189,6 +189,7 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
     yield_min = settings.dividend_yield_min_val
     payout_max = settings.payout_ratio_max_val
     debt_ebitda_max = settings.debt_return_time_max_val_by_ebitda
+    min_streak = int(settings.years_dividends_growth)
 
     for df in [df_raw, df_filtered]:
         if 'debtReturnTimeByEbitda' not in df.columns:
@@ -378,7 +379,7 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
 </div>
 
 <div class="thresholds">
-    Filters: Div Yield &gt; {yield_min:.1%} &nbsp;|&nbsp; Payout Ratio &lt; {payout_max:.0%} &nbsp;|&nbsp; Debt/EBITDA &lt; {debt_ebitda_max:.0f} years
+    Filters: Div Yield &gt; {yield_min:.1%} &nbsp;|&nbsp; Payout Ratio &lt; {payout_max:.0%} &nbsp;|&nbsp; Debt/EBITDA &lt; {debt_ebitda_max:.0f} years &nbsp;|&nbsp; Growth Streak &ge; {min_streak} years
 </div>
 
 <div class="legend">
