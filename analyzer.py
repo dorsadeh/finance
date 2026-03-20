@@ -59,7 +59,7 @@ class Analyzer():
     
     @property
     def dgr(self) -> float:
-        return self._dgr
+        return self._dgr_5
     
     @property
     def growth_streak(self) -> float:
@@ -86,6 +86,8 @@ class Analyzer():
         To avoid negative biases the function discluding the current year
         """
         divs = self._dividends_by_year["Dividends"].values[-dgr_years-1:-1]
+        if np.any(divs <= 0):
+            return math.nan
         divs_log = np.log(divs)
         linreg_result = cp.stats.linregress(range(dgr_years), divs_log)
         return np.exp(linreg_result.slope)-1

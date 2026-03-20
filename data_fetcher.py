@@ -59,19 +59,24 @@ class DataFetcher:
             return
 
         print("Downloading data for " + dir_path + "...")
-        ticker_info = yf.Ticker(ticker)
+        try:
+            ticker_info = yf.Ticker(ticker)
 
-        # save info json
-        with open(paths["info_json_path"], 'w') as f:
-            json.dump(ticker_info.info, f, indent=4)
-        
-        # save dividends series
-        dividends = ticker_info.dividends
-        dividends.to_csv(paths["dividends_path"], date_format=defs.date_format)
+            # save info json
+            with open(paths["info_json_path"], 'w') as f:
+                json.dump(ticker_info.info, f, indent=4)
 
-        # save history series
-        history = ticker_info.history(start=self.start_date, end=datetime.now())
-        history.to_csv(paths["stock_history_path"])
+            # save dividends series
+            dividends = ticker_info.dividends
+            dividends.to_csv(paths["dividends_path"], date_format=defs.date_format)
+
+            # save history series
+            history = ticker_info.history(start=self.start_date, end=datetime.now())
+            history.to_csv(paths["stock_history_path"])
+        except Exception:
+            # Remove the directory so the ticker can be retried on next run
+            shutil.rmtree(dir_path, ignore_errors=True)
+            raise
 
     
     def get_ticker_info(self, ticker:str, metrics: list) -> dict:
@@ -92,24 +97,34 @@ class DataFetcher:
         for metric in metrics:
             try:
                 value = ticker_info_dict[metric]
-            except:
+            except KeyError:
                 value = 'N/A'
+            # yfinance >= 1.0 returns dividendYield as percentage (e.g. 2.73 instead of 0.0273)
+            if metric == 'dividendYield' and isinstance(value, (int, float)) and value > 1:
+                value = value / 100.0
             data[metric] = value
 
         df = pd.read_csv(paths["stock_history_path"])
-        start_price = df.loc[0, 'Close']
-        end_price = df.loc[len(df)-1, 'Close']
-        data['price_today'] = end_price
-        data['price_at_start'] = start_price
-        data['growth'] = (end_price - start_price) / start_price * 100
+        if df.empty or 'Close' not in df.columns:
+            data['price_today'] = 'N/A'
+            data['price_at_start'] = 'N/A'
+            data['growth'] = 'N/A'
+        else:
+            start_price = df['Close'].iloc[0]
+            end_price = df['Close'].iloc[-1]
+            data['price_today'] = end_price
+            data['price_at_start'] = start_price
+            data['growth'] = (end_price - start_price) / start_price * 100
         return data
     
     def get_ticker_dividends_history(self, ticker:str) -> pd.DataFrame:
         dir_path = os.path.join(self.downloaded_data_dir_path, ticker)
         if not os.path.exists(dir_path):
-            return {}
-       
+            return pd.DataFrame({"Date": [], "Dividends": []})
+
         paths = self.__get_paths(ticker)
-        data = pd.read_csv(paths["dividends_path"], parse_dates=['Date'])
+        data = pd.read_csv(paths["dividends_path"])
+        if 'Date' not in data.columns or data.empty:
+            return pd.DataFrame({"Date": [], "Dividends": []})
         data['Date'] = pd.to_datetime(data['Date'], utc=True)
         return data
