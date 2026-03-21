@@ -115,18 +115,20 @@ def generate_html_report(raw_csv_path: str, filtered_csv_path: str, settings, ou
     .control-item .input-row {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
     }
     .control-item input[type=range] {
         flex: 1;
+        min-width: 0;
         accent-color: #3498db;
     }
     .control-item .val {
         font-size: 13px;
         font-weight: 600;
         color: #2c3e50;
-        min-width: 45px;
-        text-align: right;
+        width: 50px;
+        flex-shrink: 0;
+        text-align: left;
     }
 
     .stats {
